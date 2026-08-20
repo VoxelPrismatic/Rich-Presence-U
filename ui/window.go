@@ -144,7 +144,7 @@ func (a *App) buildPresence() *qt6.QWidget {
 		}
 		g := a.gameState()
 		switch {
-		case text == "{fc}":
+		case a.desc.CurrentIndex() >= 0 && a.desc.CurrentData().ToString() == "{fc}":
 			g.Mode = "friendcode"
 		case strings.TrimSpace(text) == "":
 			g.Mode = "empty"
@@ -271,6 +271,7 @@ func (a *App) buildDetailsForm() *qt6.QWidget {
 			return
 		}
 		a.sys().TagID = text
+		a.fillDescOptions()
 		a.updateApply()
 	})
 	addFormRow(nnGrid, 0, a.tr.T("TAG_TITLE_NNID"), a.nnid.QWidget, nil)
@@ -380,6 +381,7 @@ func (a *App) onFCChanged(cur, next *qt6.QLineEdit, text string) {
 		return
 	}
 	a.sys().TagFC = [3]string{a.fcA.Text(), a.fcB.Text(), a.fcC.Text()}
+	a.fillDescOptions()
 	a.updateApply()
 }
 
@@ -429,18 +431,36 @@ func (a *App) updateRegionItems() {
 	}
 }
 
+func (a *App) friendCodeLabel() string {
+	if t := a.tag(); t != "" {
+		return t
+	}
+	switch a.settings.System {
+	case nso.WUP:
+		return "ID: —"
+	case nso.HAC, nso.BEE:
+		return "SW-0000-0000-0000"
+	default:
+		return "FC: 0000-0000-0000"
+	}
+}
+
 func (a *App) fillDescOptions() {
+	if a.desc == nil {
+		return
+	}
 	a.silent = true
 	defer func() { a.silent = false }()
 	g := a.gameState()
+	label := a.friendCodeLabel()
 	a.desc.Clear()
-	a.desc.AddItem("{fc}")
-	if strings.TrimSpace(g.Description) != "" && g.Description != "{fc}" {
+	a.desc.AddItem3(label, qt6.NewQVariant11("{fc}"))
+	if strings.TrimSpace(g.Description) != "" && g.Description != "{fc}" && g.Description != label {
 		a.desc.AddItem(g.Description)
 	}
 	switch {
 	case g.Mode == "friendcode":
-		a.desc.SetCurrentText("{fc}")
+		a.desc.SetCurrentIndex(0)
 	case strings.TrimSpace(g.Description) != "":
 		a.desc.SetCurrentText(g.Description)
 	default:

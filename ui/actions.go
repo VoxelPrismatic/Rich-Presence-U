@@ -5,14 +5,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/mappu/miqt/qt6"
 	"github.com/mappu/miqt/qt6/mainthread"
 	"github.com/voxelprismatic/richpresenceu/discord"
-	"github.com/voxelprismatic/richpresenceu/nso"
 )
 
 func (a *App) updateApply() {
@@ -217,13 +214,24 @@ func paddedSpin(max, digits, width int) *qt6.QSpinBox {
 	sp.SetAlignment(qt6.AlignRight | qt6.AlignVCenter)
 	sp.SetSizePolicy2(qt6.QSizePolicy__Fixed, qt6.QSizePolicy__Fixed)
 	sp.SetFixedWidth(width)
-	sp.OnTextFromValue(func(super func(val int) string, val int) string {
-		return fmt.Sprintf("%0*d", digits, val)
-	})
-	sp.OnValueFromText(func(super func(text string) int, text string) int {
-		n, _ := strconv.Atoi(strings.TrimSpace(text))
-		return n
-	})
+	pad := func() {
+		if le := sp.LineEdit(); le != nil {
+			txt := fmt.Sprintf("%0*d", digits, sp.Value())
+			if le.Text() != txt {
+				cur := le.CursorPosition()
+				le.SetText(txt)
+				if cur > len(txt) {
+					cur = len(txt)
+				}
+				le.SetCursorPosition(cur)
+			}
+		}
+	}
+	sp.OnValueChanged(func(int) { pad() })
+	if sp.Value() == 0 {
+		sp.SetValue(1)
+		sp.SetValue(0)
+	}
 	return sp
 }
 
@@ -279,6 +287,7 @@ func (a *App) onTimer() {
 	lay.AddWidget(btns.QWidget)
 	if d.Exec() == int(qt6.QDialog__Accepted) {
 		a.settings.Timer = h.Value()*3600 + m.Value()*60 + s.Value()
+		a.persist()
 		a.startHideTimer()
 	}
 	if a.timerBtn != nil {
@@ -294,7 +303,9 @@ func (a *App) onDataAction() {
 			return
 		}
 		_ = a.nso.ClearCache()
-		a.refreshTitles(true)
+		a.refillGameCombo()
+		a.refreshGameUI()
+		a.updateApply()
 	case "all":
 		if qt6.QMessageBox_Question6(a.win.QWidget, a.tr.T("RESET_ALL_TITLE"), popupText(a.tr.T("RESET_ALL_HINT")), qt6.QMessageBox__Yes|qt6.QMessageBox__No, qt6.QMessageBox__No) != qt6.QMessageBox__Yes {
 			return
@@ -302,45 +313,6 @@ func (a *App) onDataAction() {
 		_ = a.nso.ResetAll()
 		qt6.QCoreApplication_Quit()
 	}
-}
-
-func (a *App) refreshTitles(force bool) {
-	if !force && a.nso.CachePresent() && !a.nso.NeedsRefresh(a.settings.RefreshEvery(), time.Unix(a.settings.RefreshLast, 0)) {
-		_ = a.nso.LoadCache()
-		a.refillGameCombo()
-		a.refreshGameUI()
-		a.fillAboutLinks()
-		return
-	}
-	prog := qt6.NewQProgressDialog5(a.tr.T("REFRESHING_STEP_1"), "", 0, 1, a.win.QWidget)
-	prog.SetWindowTitle(a.tr.T("REFRESH_TITLE"))
-	prog.SetMinimumDuration(0)
-	prog.SetCancelButton(nil)
-	prog.Show()
-	go func() {
-		err := a.nso.Refresh(context.Background(), func(p nso.Progress) {
-			mainthread.Start(func() {
-				prog.SetValue(p.Current)
-				if p.Stage == "done" {
-					prog.SetLabelText(a.tr.T("REFRESHING_DONE"))
-				}
-			})
-		})
-		mainthread.Start(func() {
-			prog.Close()
-			if err != nil {
-				a.debug("refresh: %v", err)
-				qt6.QMessageBox_Warning(a.win.QWidget, a.tr.T("REFRESH_TITLE"), err.Error())
-				_ = a.nso.LoadCache()
-			} else {
-				a.settings.RefreshLast = time.Now().Unix()
-			}
-			a.refillGameCombo()
-			a.refreshGameUI()
-			a.fillAboutLinks()
-			a.updateApply()
-		})
-	}()
 }
 
 func (a *App) updateElapsed() {

@@ -17,7 +17,7 @@ func (c *Client) CoverURL(game Game, preferred Region) string {
 }
 
 // CoverPath returns a cached local image, downloading it when missing.
-// Files live in ~/.cache/rich-presence-u/{english-title}.ext
+// Files live in ~/.cache/rich-presence-u/{nsuid}.ext
 func (c *Client) CoverPath(ctx context.Context, game Game, preferred Region) (string, error) {
 	if !game.Verified() {
 		return "", fmt.Errorf("unverified game")
@@ -73,9 +73,9 @@ func (c *Client) imagePath(game Game, url string) string {
 	if ext == "" || len(ext) > 5 {
 		ext = ".jpg"
 	}
-	name := sanitizeFile(game.EnglishTitle())
+	name := sanitizeFile(game.NativeID())
 	if name == "" {
-		name = sanitizeFile(game.NativeID())
+		name = sanitizeFile(game.EnglishTitle())
 	}
 	return filepath.Join(c.CacheDir, name+ext)
 }

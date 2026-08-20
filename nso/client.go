@@ -224,18 +224,29 @@ func (c *Client) ResetAll() error {
 }
 
 func (c *Client) get(ctx context.Context, url string) (io.ReadCloser, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	return c.do(ctx, http.MethodGet, url, nil, nil)
+}
+
+func (c *Client) do(ctx context.Context, method, rawURL string, body []byte, extra map[string]string) (io.ReadCloser, error) {
+	var rdr io.Reader
+	if body != nil {
+		rdr = bytes.NewReader(body)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, rawURL, rdr)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("User-Agent", UserAgent)
+	for k, v := range extra {
+		req.Header.Set(k, v)
+	}
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		resp.Body.Close()
-		return nil, fmt.Errorf("%s: %s", url, resp.Status)
+		return nil, fmt.Errorf("%s: %s", rawURL, resp.Status)
 	}
 	return resp.Body, nil
 }

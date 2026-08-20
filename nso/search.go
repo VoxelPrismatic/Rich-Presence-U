@@ -97,9 +97,50 @@ func MergeGames(local []Hit, extra []Game, limit int) []Game {
 		}
 	}
 	for _, g := range extra {
-		if add(g, g.Title(US)) {
+		if add(g, g.Title("")) {
 			return out
 		}
 	}
 	return out
+}
+
+func titlesSimilar(a, b string) bool {
+	na, nb := normTitle(a), normTitle(b)
+	if na == "" || nb == "" {
+		return false
+	}
+	if na == nb {
+		return true
+	}
+	if len(na) < 4 || len(nb) < 4 {
+		return false
+	}
+	return strings.Contains(na, nb) || strings.Contains(nb, na)
+}
+
+func normTitle(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	s = strings.ReplaceAll(s, "™", "")
+	s = strings.ReplaceAll(s, "®", "")
+	s = strings.ReplaceAll(s, "©", "")
+	s = strings.ReplaceAll(s, "(tm)", "")
+	s = strings.ReplaceAll(s, "(r)", "")
+	var b strings.Builder
+	b.Grow(len(s))
+	lastSpace := false
+	for _, r := range s {
+		switch {
+		case r == ' ' || r == '\t':
+			if !lastSpace {
+				b.WriteByte(' ')
+				lastSpace = true
+			}
+		case r == '-' || r == '_' || r == ':' || r == '!' || r == '?' || r == '.' || r == ',':
+			continue
+		default:
+			b.WriteRune(r)
+			lastSpace = false
+		}
+	}
+	return strings.TrimSpace(b.String())
 }

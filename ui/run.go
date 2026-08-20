@@ -67,7 +67,6 @@ func Main() {
 	})
 
 	a.win.Show()
-	a.refreshTitles(false)
 	if a.settings.AutoConnect {
 		a.connect(false)
 	}

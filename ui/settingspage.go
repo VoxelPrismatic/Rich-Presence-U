@@ -56,30 +56,6 @@ func (a *App) buildSettings() *qt6.QWidget {
 	addFormRow(g, row, a.tr.T("REGION_TITLE"), a.prefRegion.QWidget, nil)
 	row++
 
-	refreshWrap := qt6.NewQWidget2()
-	rw := qt6.NewQHBoxLayout(refreshWrap)
-	rw.SetContentsMargins(0, 0, 0, 0)
-	a.refreshCombo = qt6.NewQComboBox2()
-	a.refreshCombo.AddItem3(a.tr.T("REFRESH_12H"), qt6.NewQVariant4(43200))
-	a.refreshCombo.AddItem3(a.tr.T("REFRESH_DAILY"), qt6.NewQVariant4(86400))
-	a.refreshCombo.AddItem3(a.tr.T("REFRESH_WEEKLY"), qt6.NewQVariant4(604800))
-	a.refreshCombo.AddItem3(a.tr.T("REFRESH_DISABLED"), qt6.NewQVariant4(-1))
-	a.refreshCombo.OnCurrentIndexChanged(func(i int) {
-		if a.silent {
-			return
-		}
-		a.settings.Refresh = a.refreshCombo.ItemData(i).ToInt()
-	})
-	now := qt6.NewQPushButton2()
-	now.SetIcon(iconNamed("view-refresh", "view-refresh"))
-	now.SetToolTip(a.tr.T("REFRESH_NOW"))
-	now.OnClicked(func() { a.refreshTitles(true) })
-	rw.AddWidget(a.refreshCombo.QWidget)
-	rw.AddWidget(now.QWidget)
-	rw.AddStretch()
-	addFormRow(g, row, a.tr.T("REFRESH_TITLE"), refreshWrap, nil)
-	row++
-
 	a.autoConn = qt6.NewQCheckBox2()
 	a.autoConn.OnToggled(func(on bool) {
 		if !a.silent {
@@ -206,17 +182,6 @@ func (a *App) loadSettingsIntoUI() {
 	a.silent = true
 	a.selectComboData(a.langCombo, a.settings.Language)
 	a.selectComboData(a.prefRegion, string(a.settings.Region))
-	found := false
-	for i := 0; i < a.refreshCombo.Count(); i++ {
-		if a.refreshCombo.ItemData(i).ToInt() == a.settings.Refresh {
-			a.refreshCombo.SetCurrentIndex(i)
-			found = true
-			break
-		}
-	}
-	if !found {
-		a.refreshCombo.SetCurrentIndex(2)
-	}
 	a.autoConn.SetChecked(a.settings.AutoConnect)
 	a.keepOn.SetChecked(a.settings.KeepOn)
 	a.debugOn.SetChecked(a.settings.DebugLog)

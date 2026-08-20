@@ -72,7 +72,7 @@ func TestRefreshAndCover(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if filepath.Base(path) != "1-2-Switch.jpg" {
+	if filepath.Base(path) != "70010000001234.jpg" {
 		t.Fatalf("cover filename %q", path)
 	}
 	if !strings.HasPrefix(path, cache) {

@@ -56,24 +56,22 @@ type App struct {
 	visBtn        *qt6.QPushButton
 	cfgBtn        *qt6.QPushButton
 
-	langCombo    *qt6.QComboBox
-	prefRegion   *qt6.QComboBox
-	refreshCombo *qt6.QComboBox
-	autoConn     *qt6.QCheckBox
-	keepOn       *qt6.QCheckBox
-	debugOn      *qt6.QCheckBox
-	dataCombo    *qt6.QComboBox
-	dataBtn      *qt6.QPushButton
-	aboutTable   *qt6.QTableWidget
+	langCombo  *qt6.QComboBox
+	prefRegion *qt6.QComboBox
+	autoConn   *qt6.QCheckBox
+	keepOn     *qt6.QCheckBox
+	debugOn    *qt6.QCheckBox
+	dataCombo  *qt6.QComboBox
+	dataBtn    *qt6.QPushButton
+	aboutTable *qt6.QTableWidget
 
 	tick *qt6.QTimer
 	hide *qt6.QTimer
 
-	completer          *qt6.QCompleter
-	searchTimer        *qt6.QTimer
-	searchHits         []nso.Game
-	searchGen          int
-	completerHighlight string
+	searchTimer   *qt6.QTimer
+	searchHits    []nso.Game
+	searchGen     int
+	gameHighlight string
 }
 
 func (a *App) sys() *SystemState {

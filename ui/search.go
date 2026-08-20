@@ -14,21 +14,8 @@ func (a *App) setupGameSearch() {
 	a.game.SetMaxVisibleItems(8)
 	a.game.SetSizeAdjustPolicy(qt6.QComboBox__AdjustToMinimumContentsLengthWithIcon)
 	a.game.SetMinimumContentsLength(12)
+	a.game.SetCompleter(nil)
 
-	a.completer = a.game.Completer()
-	if a.completer != nil {
-		a.completer.SetCompletionMode(qt6.QCompleter__PopupCompletion)
-		a.completer.SetFilterMode(qt6.MatchContains)
-		a.completer.SetCaseSensitivity(qt6.CaseInsensitive)
-		a.completer.SetMaxVisibleItems(8)
-		a.completer.SetWrapAround(true)
-		a.completer.OnActivated(func(text string) {
-			a.pickCompletion(text)
-		})
-		a.completer.OnHighlighted(func(text string) {
-			a.completerHighlight = text
-		})
-	}
 	if le := a.game.LineEdit(); le != nil {
 		le.OnTextEdited(func(text string) {
 			if a.silent {
@@ -44,7 +31,14 @@ func (a *App) setupGameSearch() {
 		a.pickGameIndex(index)
 	})
 	a.game.OnTextHighlighted(func(text string) {
-		a.completerHighlight = text
+		a.gameHighlight = text
+	})
+	a.game.OnWheelEvent(func(super func(e *qt6.QWheelEvent), e *qt6.QWheelEvent) {
+		if v := a.game.View(); v == nil || !v.IsVisible() {
+			e.Ignore()
+			return
+		}
+		super(e)
 	})
 
 	a.searchTimer = qt6.NewQTimer2(a.game.QObject)
@@ -68,7 +62,7 @@ func (a *App) setSearchHits(games []nso.Game, show bool) {
 	if le := a.game.LineEdit(); le != nil {
 		cursor = le.CursorPosition()
 	}
-	keep := a.completerHighlight
+	keep := a.gameHighlight
 	prev := a.silent
 	a.silent = true
 	a.game.Clear()
@@ -81,11 +75,17 @@ func (a *App) setSearchHits(games []nso.Game, show bool) {
 		le.SetCursorPosition(cursor)
 	}
 	a.silent = prev
-	if !show || a.completer == nil || !a.gameSearchOpen() || strings.TrimSpace(typed) == "" || a.game.Count() == 0 {
+	if !show || !a.gameSearchOpen() || strings.TrimSpace(typed) == "" || a.game.Count() == 0 {
 		return
 	}
-	a.completer.Complete()
-	a.restoreCompletion(keep)
+	a.game.ShowPopup()
+	a.silent = true
+	a.game.SetEditText(typed)
+	if le := a.game.LineEdit(); le != nil {
+		le.SetCursorPosition(cursor)
+	}
+	a.silent = prev
+	a.restoreGameHighlight(keep)
 }
 
 func (a *App) pickGameIndex(index int) {
@@ -100,15 +100,42 @@ func (a *App) pickGameIndex(index int) {
 }
 
 func (a *App) rememberAndSet(id string) {
+	var game nso.Game
+	found := false
 	for _, g := range a.searchHits {
 		if g.ID == id {
-			_ = a.nso.Remember(a.settings.System, g)
+			game = g
+			found = true
 			break
 		}
+	}
+	if found {
+		_ = a.nso.Remember(a.settings.System, game)
 	}
 	a.silent = true
 	a.setGameID(id)
 	a.silent = false
+	if !found {
+		return
+	}
+	sys := a.settings.System
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+		defer cancel()
+		filled, err := a.nso.EnrichRegions(ctx, game, sys)
+		if err != nil {
+			a.debug("enrich regions: %v", err)
+			return
+		}
+		_ = a.nso.Remember(sys, filled)
+		mainthread.Start(func() {
+			if a.sys().Game != id {
+				return
+			}
+			a.refreshGameUI()
+			a.updateApply()
+		})
+	}()
 }
 
 func (a *App) pickCompletion(text string) {
@@ -119,20 +146,14 @@ func (a *App) pickCompletion(text string) {
 	region := a.preferredRegion()
 	for _, g := range a.searchHits {
 		if g.Title(region) == text {
-			_ = a.nso.Remember(a.settings.System, g)
-			a.silent = true
-			a.setGameID(g.ID)
-			a.silent = false
+			a.rememberAndSet(g.ID)
 			return
 		}
 	}
 	hits := nso.Search(a.searchHits, text, region)
 	for _, h := range hits {
 		if h.Exact || h.DisplayTitle == text {
-			_ = a.nso.Remember(a.settings.System, h.Game)
-			a.silent = true
-			a.setGameID(h.Game.ID)
-			a.silent = false
+			a.rememberAndSet(h.Game.ID)
 			return
 		}
 	}
@@ -158,17 +179,26 @@ func (a *App) scheduleGameSearch() {
 
 func (a *App) runStoreSearch() {
 	text := strings.TrimSpace(a.game.CurrentText())
-	if len(text) < 2 {
-		a.setSearchHits(a.nso.Games(a.settings.System), false)
+	sys := a.settings.System
+	region := a.settings.Region
+	display := a.preferredRegion()
+	if len([]rune(text)) < 2 {
+		local := nso.Search(a.nso.Games(sys), text, display)
+		games := make([]nso.Game, 0, len(local))
+		for _, h := range local {
+			games = append(games, h.Game)
+		}
+		if text == "" {
+			games = a.nso.Games(sys)
+		}
+		a.setSearchHits(games, text != "")
 		return
 	}
 	gen := a.searchGen
-	sys := a.settings.System
-	region := a.preferredRegion()
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 		defer cancel()
-		extra, err := a.nso.SearchStore(ctx, text, sys)
+		extra, err := a.nso.SearchStore(ctx, text, sys, region)
 		if err != nil {
 			a.debug("eshop search: %v", err)
 			extra = nil
@@ -177,7 +207,7 @@ func (a *App) runStoreSearch() {
 			if gen != a.searchGen || strings.TrimSpace(a.game.CurrentText()) != text {
 				return
 			}
-			local := nso.Search(a.nso.Games(sys), text, region)
+			local := nso.Search(a.nso.Games(sys), text, display)
 			a.setSearchHits(nso.MergeGames(local, extra, 0), true)
 		})
 	}()
@@ -193,32 +223,28 @@ func (a *App) gameSearchOpen() bool {
 	if le := a.game.LineEdit(); le != nil && le.HasFocus() {
 		return true
 	}
-	if a.completer != nil {
-		if pop := a.completer.Popup(); pop != nil && pop.IsVisible() {
-			return true
-		}
-	}
 	if v := a.game.View(); v != nil && v.IsVisible() {
 		return true
 	}
 	return false
 }
 
-func (a *App) restoreCompletion(keep string) {
-	if a.completer == nil || keep == "" {
+func (a *App) restoreGameHighlight(keep string) {
+	if keep == "" || a.game == nil {
 		return
 	}
-	n := a.completer.CompletionCount()
-	for i := 0; i < n; i++ {
-		if !a.completer.SetCurrentRow(i) {
-			continue
-		}
-		if a.completer.CurrentCompletion() == keep {
-			if pop := a.completer.Popup(); pop != nil {
-				pop.SetCurrentIndex(a.completer.CurrentIndex())
-			}
-			a.completerHighlight = keep
-			return
-		}
+	idx := a.game.FindText(keep)
+	if idx < 0 {
+		return
+	}
+	view := a.game.View()
+	model := a.game.Model()
+	if view == nil || model == nil {
+		return
+	}
+	mi := model.Index(idx, 0, qt6.NewQModelIndex())
+	if mi != nil && mi.IsValid() {
+		view.SetCurrentIndex(mi)
+		a.gameHighlight = keep
 	}
 }

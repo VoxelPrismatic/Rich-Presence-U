@@ -25,6 +25,12 @@ func TestSearchSubstringAndExact(t *testing.T) {
 	}
 }
 
+func TestNormTitle(t *testing.T) {
+	if normTitle("Splatoon™ 3") != "splatoon 3" {
+		t.Fatalf("%q", normTitle("Splatoon™ 3"))
+	}
+}
+
 func TestResolve(t *testing.T) {
 	games := sampleGames()
 	g, ok := Resolve(games, "1-2-Switch", US)
