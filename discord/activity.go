@@ -14,6 +14,13 @@ type Activity struct {
 	SmallText      string
 	PartySize      int
 	PartyMax       int
+	Buttons        []Button
+}
+
+// Button is a Rich Presence action (visible to other users, not yourself).
+type Button struct {
+	Label string
+	URL   string
 }
 
 // Presence is the app-level view of what should show on Discord.
@@ -29,6 +36,7 @@ type Presence struct {
 	PartyMax    int
 	Start       int64
 	End         int64
+	Buttons     []Button
 }
 
 func pad2(s string) string {
@@ -62,6 +70,7 @@ func Build(p Presence) Activity {
 		EndTimestamp:   p.End,
 		LargeImage:     p.CoverKey,
 		LargeText:      "Rich Presence Qt",
+		Buttons:        p.Buttons,
 	}
 	if a.LargeImage == "" {
 		a.LargeImage = "default"
@@ -132,6 +141,28 @@ func (a Activity) payload() map[string]any {
 	if a.PartyMax > 0 {
 		out["party"] = map[string]any{
 			"size": []int{a.PartySize, a.PartyMax},
+		}
+	}
+	if btns := buttonPayload(a.Buttons); len(btns) > 0 {
+		out["buttons"] = btns
+	}
+	return out
+}
+
+func buttonPayload(in []Button) []map[string]string {
+	out := make([]map[string]string, 0, 2)
+	for _, b := range in {
+		label := strings.TrimSpace(b.Label)
+		u := strings.TrimSpace(b.URL)
+		if label == "" || u == "" {
+			continue
+		}
+		if len([]rune(label)) > 32 {
+			label = string([]rune(label)[:32])
+		}
+		out = append(out, map[string]string{"label": label, "url": u})
+		if len(out) == 2 {
+			break
 		}
 	}
 	return out

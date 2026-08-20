@@ -8,19 +8,24 @@ import (
 	"github.com/mappu/miqt/qt6/mainthread"
 	"github.com/voxelprismatic/richpresenceu/discord"
 	"github.com/voxelprismatic/richpresenceu/nso"
+	"github.com/voxelprismatic/richpresenceu/svc"
 )
 
 func Main() {
 	qt6.NewQApplication(os.Args)
 	qt6.QCoreApplication_SetApplicationName("Rich Presence Qt")
-	qt6.QCoreApplication_SetApplicationVersion(Version)
+	qt6.QCoreApplication_SetApplicationVersion(svc.VERSION)
 	qt6.QCoreApplication_SetOrganizationName("VoxelPrismatic")
+	nso.UserAgent = svc.UserAgent()
 
 	client, err := nso.New("", "")
 	if err != nil {
 		panic(err)
 	}
 	_ = client.LoadCache()
+	if b, err := os.ReadFile(svc.LogoPath(client.ConfigDir)); err == nil {
+		applyAppIcon(b)
+	}
 
 	settings, systems := loadPrefs(client.ConfigDir)
 	a := &App{
@@ -45,6 +50,11 @@ func Main() {
 	})
 
 	a.buildWindow()
+	if a.win != nil {
+		a.win.SetWindowIcon(qt6.QGuiApplication_WindowIcon())
+	}
+	a.maybeUpdate()
+	a.maybeInstall()
 	a.loadSettingsIntoUI()
 	a.reloadSystem()
 	a.updateApply()

@@ -5,6 +5,7 @@ import (
 
 	"github.com/mappu/miqt/qt6"
 	"github.com/voxelprismatic/richpresenceu/nso"
+	"github.com/voxelprismatic/richpresenceu/svc"
 )
 
 func (a *App) buildSettings() *qt6.QWidget {
@@ -158,7 +159,7 @@ func (a *App) fillAboutLinks() {
 
 	t.ClearContents()
 	t.SetItem(0, 0, aboutKey(a.tr.T("ABOUT_VERSION")))
-	t.SetCellWidget(0, 1, aboutLink(Version, changelog).QWidget)
+	t.SetCellWidget(0, 1, aboutLink(svc.VERSION, changelog).QWidget)
 
 	t.SetItem(1, 0, aboutKey(a.tr.T("ABOUT_INFO")))
 	t.SetCellWidget(1, 1, aboutLink("Blog", home).QWidget)

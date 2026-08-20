@@ -12,26 +12,23 @@ import (
 	"github.com/voxelprismatic/richpresenceu/nso"
 )
 
-const (
-	Version = "2.6.0"
-	Build   = 2600
-)
-
 type Settings struct {
-	System      nso.System `json:"system"`
-	Language    string     `json:"language"`
-	Refresh     int        `json:"refresh"`
-	RefreshLast int64      `json:"refresh_last"`
-	AutoConnect bool       `json:"auto_connect"`
-	KeepOn      bool       `json:"keep_on"`
-	DebugLog    bool       `json:"debug_log"`
-	Activity    bool       `json:"activity"`
-	Timer       int        `json:"timer"`
-	Region      nso.Region `json:"region"`
-	WindowW     int        `json:"window_w"`
-	WindowH     int        `json:"window_h"`
-	WindowX     int        `json:"window_x"`
-	WindowY     int        `json:"window_y"`
+	System          nso.System `json:"system"`
+	Language        string     `json:"language"`
+	Refresh         int        `json:"refresh"`
+	RefreshLast     int64      `json:"refresh_last"`
+	AutoConnect     bool       `json:"auto_connect"`
+	KeepOn          bool       `json:"keep_on"`
+	DebugLog        bool       `json:"debug_log"`
+	Activity        bool       `json:"activity"`
+	Timer           int        `json:"timer"`
+	Region          nso.Region `json:"region"`
+	WindowW         int        `json:"window_w"`
+	WindowH         int        `json:"window_h"`
+	WindowX         int        `json:"window_x"`
+	WindowY         int        `json:"window_y"`
+	InstallDeclined string     `json:"install_declined,omitempty"`
+	UpdateDeclined  string     `json:"update_declined,omitempty"`
 }
 
 type GameState struct {

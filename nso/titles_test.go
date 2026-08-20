@@ -57,6 +57,18 @@ func TestCatalogLookup(t *testing.T) {
 	}
 }
 
+func TestStorePage(t *testing.T) {
+	if u := StorePage("70010000046395", US); u != "https://ec.nintendo.com/US/en/titles/70010000046395" {
+		t.Fatalf("us %q", u)
+	}
+	if u := StorePage("hac::70010000046395", JP); u != "https://ec.nintendo.com/JP/ja/titles/70010000046395" {
+		t.Fatalf("jp %q", u)
+	}
+	if StorePage("eu:123", EU) != "" || StorePage("otsw", US) != "" {
+		t.Fatal("non-nsuid should be empty")
+	}
+}
+
 func TestIsStoreID(t *testing.T) {
 	if !IsStoreID("70010000012345") || !IsStoreID("hac::70010000012345") || !IsStoreID("eu:2987033") {
 		t.Fatal("store ids should match")

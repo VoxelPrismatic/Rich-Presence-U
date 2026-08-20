@@ -1,6 +1,9 @@
 package discord
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestBuildDescriptionAndTag(t *testing.T) {
 	a := Build(Presence{
@@ -50,6 +53,20 @@ func TestBuildParty(t *testing.T) {
 	size, _ := party["size"].([]int)
 	if len(size) != 2 || size[0] != 2 || size[1] != 4 {
 		t.Fatalf("payload party %v", p["party"])
+	}
+}
+
+func TestBuildButtons(t *testing.T) {
+	a := Build(Presence{
+		Title: "Game",
+		Buttons: []Button{
+			{Label: "Buy on eShop", URL: "https://ec.nintendo.com/US/en/titles/7001"},
+		},
+	})
+	p := a.payload()
+	btns, _ := p["buttons"].([]map[string]string)
+	if len(btns) != 1 || btns[0]["label"] != "Buy on eShop" || !strings.Contains(btns[0]["url"], "nintendo.com") {
+		t.Fatalf("buttons %v", p["buttons"])
 	}
 }
 

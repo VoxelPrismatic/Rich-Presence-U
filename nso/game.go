@@ -14,6 +14,7 @@ type Game struct {
 	// Covers is the eShop image URL per region. CoverArt is a legacy fallback.
 	Covers   map[Region]string
 	CoverArt string
+	Stores   map[Region]string
 }
 
 func (g Game) EnglishTitle() string {
@@ -119,5 +120,48 @@ func (g *Game) setCover(region Region, url string) {
 	g.Icons[region] = true
 	if g.CoverArt == "" {
 		g.CoverArt = url
+	}
+}
+
+func (g *Game) setStore(region Region, u string) {
+	u = strings.TrimSpace(u)
+	if u == "" || !region.Valid() {
+		return
+	}
+	if g.Stores == nil {
+		g.Stores = map[Region]string{}
+	}
+	g.Stores[region] = u
+}
+
+// Store is the eShop product page for preferred, then any other region, then
+// a constructed ec.nintendo.com titles URL from the nsuid.
+func (g Game) Store(preferred Region) string {
+	if g.Stores != nil {
+		if u := g.Stores[preferred]; u != "" {
+			return u
+		}
+		for _, r := range Regions {
+			if u := g.Stores[r]; u != "" {
+				return u
+			}
+		}
+	}
+	return StorePage(g.ID, preferred)
+}
+
+// StorePage is Nintendo's regional product URL for an nsuid.
+func StorePage(id string, region Region) string {
+	nsuid := strings.TrimPrefix(id, HACPrefix)
+	if nsuid == "" || strings.HasPrefix(nsuid, "eu:") || !IsStoreID(nsuid) {
+		return ""
+	}
+	switch region {
+	case JP:
+		return "https://ec.nintendo.com/JP/ja/titles/" + nsuid
+	case EU:
+		return "https://ec.nintendo.com/GB/en/titles/" + nsuid
+	default:
+		return "https://ec.nintendo.com/US/en/titles/" + nsuid
 	}
 }

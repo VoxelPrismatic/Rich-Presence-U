@@ -1,0 +1,40 @@
+name: Pre-release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prerelease:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install Qt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc g++ pkg-config qt6-base-dev libgl1-mesa-dev libxkbcommon-dev
+
+      - name: Build
+        env:
+          CGO_ENABLED: 1
+        run: |
+          HASH="${GITHUB_SHA::7}"
+          echo "TAG=v-git-$HASH" >> "$GITHUB_ENV"
+          go build -o app .
+
+      - name: Create pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" \
+            --prerelease \
+            --title "$TAG" \
+            --notes "Pre-release from ${GITHUB_SHA}." \
+            app logo.png rich-presence-u.desktop

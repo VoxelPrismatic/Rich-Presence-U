@@ -34,6 +34,7 @@ type euDoc struct {
 	Playable    []string        `json:"playable_on_txt"`
 	Nsuid       []string        `json:"nsuid_txt"`
 	TitleExtras []string        `json:"title_extras_txt"`
+	URL         string          `json:"url"`
 }
 
 type jpResponse struct {
@@ -50,6 +51,7 @@ type jpItem struct {
 	Sform string `json:"sform"`
 	IURL  string `json:"iurl"`
 	SiURL string `json:"siurl"`
+	URL   string `json:"url"`
 }
 
 type usQuery struct {
@@ -70,6 +72,7 @@ type usHit struct {
 	ProductImageSquare string `json:"productImageSquare"`
 	ProductImage       string `json:"productImage"`
 	DLCType            string `json:"dlcType"`
+	URL                string `json:"url"`
 }
 
 func (c *Client) storeURL() string {
@@ -124,19 +127,38 @@ func applyIDPrefix(id string, want, asset System) string {
 	return id
 }
 
-func gameForRegion(id string, asset System, region Region, title, cover string) Game {
+func gameForRegion(id string, asset System, region Region, title, cover, store string) Game {
 	g := Game{
 		ID:          id,
 		AssetSystem: asset,
 		Icons:       map[Region]bool{},
 		Titles:      map[Region]string{},
 		Covers:      map[Region]string{},
+		Stores:      map[Region]string{},
 	}
 	if title != "" {
 		g.Titles[region] = title
 	}
 	g.setCover(region, cover)
+	if store == "" {
+		store = StorePage(id, region)
+	}
+	g.setStore(region, store)
 	return g
+}
+
+func absStoreURL(u, origin string) string {
+	u = strings.TrimSpace(u)
+	if u == "" {
+		return ""
+	}
+	if strings.HasPrefix(u, "http://") || strings.HasPrefix(u, "https://") {
+		return u
+	}
+	if strings.HasPrefix(u, "/") && origin != "" {
+		return strings.TrimRight(origin, "/") + u
+	}
+	return ""
 }
 
 func euCover(image, square string) string {
@@ -208,7 +230,8 @@ func (d euDoc) Game(want System, region Region) (Game, bool) {
 		id = strings.ToLower(strings.ReplaceAll(title, " ", ""))
 	}
 	id = applyIDPrefix(id, want, asset)
-	return gameForRegion(id, asset, region, title, euCover(d.Image, d.ImageSq)), true
+	store := absStoreURL(d.URL, "https://www.nintendo.com/en-gb")
+	return gameForRegion(id, asset, region, title, euCover(d.Image, d.ImageSq), store), true
 }
 
 func jpAsset(hard, sform string) System {
@@ -244,7 +267,7 @@ func (d jpItem) Game(want System) (Game, bool) {
 		return Game{}, false
 	}
 	id = applyIDPrefix(id, want, asset)
-	return gameForRegion(id, asset, JP, title, jpCover(d.IURL, d.SiURL)), true
+	return gameForRegion(id, asset, JP, title, jpCover(d.IURL, d.SiURL), absStoreURL(d.URL, "https://www.nintendo.com")), true
 }
 
 func usAsset(platform, code string) System {
@@ -278,7 +301,8 @@ func (d usHit) Game(want System) (Game, bool) {
 		return Game{}, false
 	}
 	id = applyIDPrefix(id, want, asset)
-	return gameForRegion(id, asset, US, title, usCover(d.ProductImageSquare, d.ProductImage)), true
+	store := absStoreURL(d.URL, "https://www.nintendo.com")
+	return gameForRegion(id, asset, US, title, usCover(d.ProductImageSquare, d.ProductImage), store), true
 }
 
 // SearchStore looks up titles on the eShop for the given preferred region.
@@ -422,6 +446,9 @@ func (c *Client) EnrichRegions(ctx context.Context, g Game, system System) (Game
 	if g.Covers == nil {
 		g.Covers = map[Region]string{}
 	}
+	if g.Stores == nil {
+		g.Stores = map[Region]string{}
+	}
 	if g.Icons == nil {
 		g.Icons = map[Region]bool{}
 	}
@@ -432,7 +459,8 @@ func (c *Client) EnrichRegions(ctx context.Context, g Game, system System) (Game
 	for _, region := range Regions {
 		needTitle := g.Titles[region] == ""
 		needCover := g.Covers[region] == ""
-		if !needTitle && !needCover {
+		needStore := g.Stores[region] == ""
+		if !needTitle && !needCover && !needStore {
 			continue
 		}
 		hits, err := c.SearchStore(ctx, seed, system, region)
@@ -455,6 +483,11 @@ func (c *Client) EnrichRegions(ctx context.Context, g Game, system System) (Game
 			if needCover {
 				if u, _ := h.Cover(region); u != "" {
 					g.setCover(region, u)
+				}
+			}
+			if needStore {
+				if u := h.Store(region); u != "" {
+					g.setStore(region, u)
 				}
 			}
 			break

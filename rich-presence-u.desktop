@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Rich Presence Qt
+Comment=Show Nintendo games on Discord
+Exec=sh -c "exec \"$HOME/.config/rich-presence-u/app\""
+TryExec=/bin/sh
+Icon=$HOME/.config/rich-presence-u/logo.png
+Terminal=false
+Categories=Game;Network;
+StartupNotify=false
+StartupWMClass=rich-presence-u
+Keywords=discord;nintendo;switch;presence;

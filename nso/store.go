@@ -28,6 +28,9 @@ type GormGame struct {
 	IconAmericas  bool
 	IconEurope    bool
 	IconJapan     bool
+	StoreAmericas string `gorm:"column:store_americas"`
+	StoreEurope   string `gorm:"column:store_europe"`
+	StoreJapan    string `gorm:"column:store_japan"`
 }
 
 type gormKV struct {
@@ -58,6 +61,7 @@ func (r GormGame) Game() Game {
 		Icons:       map[Region]bool{},
 		Titles:      map[Region]string{},
 		Covers:      map[Region]string{},
+		Stores:      map[Region]string{},
 		CoverArt:    r.CoverArt,
 	}
 	if g.AssetSystem == "" {
@@ -69,6 +73,9 @@ func (r GormGame) Game() Game {
 	g.setCover(US, r.CoverAmericas)
 	g.setCover(EU, r.CoverEurope)
 	g.setCover(JP, r.CoverJapan)
+	g.setStore(US, r.StoreAmericas)
+	g.setStore(EU, r.StoreEurope)
+	g.setStore(JP, r.StoreJapan)
 	if r.CoverArt != "" && coverOf(g, US) == "" && coverOf(g, EU) == "" && coverOf(g, JP) == "" {
 		for _, region := range Regions {
 			if g.Titles[region] != "" {
@@ -116,7 +123,17 @@ func toGormGame(system System, g Game, cover string) GormGame {
 		IconAmericas:  g.Icons[US] || coverOf(g, US) != "",
 		IconEurope:    g.Icons[EU] || coverOf(g, EU) != "",
 		IconJapan:     g.Icons[JP] || coverOf(g, JP) != "",
+		StoreAmericas: storeOf(g, US),
+		StoreEurope:   storeOf(g, EU),
+		StoreJapan:    storeOf(g, JP),
 	}
+}
+
+func storeOf(g Game, region Region) string {
+	if g.Stores != nil {
+		return g.Stores[region]
+	}
+	return ""
 }
 
 func (c *Client) purgeLegacyCatalog() error {

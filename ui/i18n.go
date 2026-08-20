@@ -48,6 +48,12 @@ var fallback = map[string]string{
 	"SETTINGS_BACK":     "Back",
 	"GAME_SYSTEM":       "Game System",
 	"TIMER_REMOVE":      "Remove",
+	"INSTALL_TITLE":     "Install Rich Presence Qt?",
+	"INSTALL_HINT":      "Add a launcher to your application menu?\nThis copies the app into ~/.config/rich-presence-u and downloads the icon and desktop entry from GitHub.",
+	"UPDATE_TITLE":      "Update available",
+	"UPDATE_HINT":       "Version %s is available. Download and install it now?",
+	"UPDATE_AVAILABLE":  "Version %s is available.\nhttps://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest",
+	"ESHOP_BUTTON":      "Buy on eShop",
 }
 
 type i18n struct {

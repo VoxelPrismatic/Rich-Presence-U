@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const UserAgent = "RichPresenceQt/2.6.0 (+https://github.com/VoxelPrismatic/Rich-Presence-U)"
+var UserAgent = "RichPresenceQt (+https://github.com/VoxelPrismatic/Rich-Presence-U)"
 
 // Progress reports metadata refresh steps.
 type Progress struct {

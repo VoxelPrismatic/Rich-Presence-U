@@ -168,7 +168,11 @@ func (a *App) presence() discord.Presence {
 		p.ShowTag = st.TagIcon
 	}
 	if game, ok := a.currentGame(); ok {
-		p.CoverKey = a.nso.CoverKey(game, a.preferredRegion())
+		region := a.preferredRegion()
+		p.CoverKey = a.nso.CoverKey(game, region)
+		if u := game.Store(region); u != "" {
+			p.Buttons = []discord.Button{{Label: a.tr.T("ESHOP_BUTTON"), URL: u}}
+		}
 	} else {
 		p.CoverKey = "default"
 	}
