@@ -35,7 +35,6 @@ type App struct {
 	game          *qt6.QLineEdit
 	region        *qt6.QComboBox
 	desc          *qt6.QComboBox
-	custom        *qt6.QLineEdit
 	partyOn       *qt6.QCheckBox
 	partyBox      *qt6.QWidget
 	noParty       *qt6.QLabel
@@ -70,11 +69,12 @@ type App struct {
 	tick *qt6.QTimer
 	hide *qt6.QTimer
 
-	completer      *qt6.QCompleter
-	completerModel *qt6.QStringListModel
-	searchTimer    *qt6.QTimer
-	searchHits     []nso.Game
-	searchGen      int
+	completer          *qt6.QCompleter
+	completerModel     *qt6.QStringListModel
+	searchTimer        *qt6.QTimer
+	searchHits         []nso.Game
+	searchGen          int
+	completerHighlight string
 }
 
 func (a *App) sys() *SystemState {
@@ -172,6 +172,18 @@ func (a *App) presence() discord.Presence {
 		p.CoverKey = a.nso.CoverKey(game, a.preferredRegion())
 	} else {
 		p.CoverKey = "default"
+	}
+	return p
+}
+
+func (a *App) presenceForPush() discord.Presence {
+	p := a.presence()
+	if rem := a.timerRemaining(); rem > 0 {
+		p.End = time.Now().Unix() + int64(rem)
+		p.Start = 0
+	} else if a.settings.Timer > 0 && a.settings.Activity {
+		p.End = time.Now().Unix() + int64(a.settings.Timer)
+		p.Start = 0
 	}
 	return p
 }

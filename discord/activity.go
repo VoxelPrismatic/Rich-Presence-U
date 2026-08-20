@@ -28,6 +28,7 @@ type Presence struct {
 	PartySize   int
 	PartyMax    int
 	Start       int64
+	End         int64
 }
 
 func pad2(s string) string {
@@ -58,6 +59,7 @@ func Build(p Presence) Activity {
 		Details:        title,
 		State:          desc,
 		StartTimestamp: p.Start,
+		EndTimestamp:   p.End,
 		LargeImage:     p.CoverKey,
 		LargeText:      "Rich Presence U",
 	}

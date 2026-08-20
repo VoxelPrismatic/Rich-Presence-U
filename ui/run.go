@@ -62,6 +62,7 @@ func Main() {
 			go func() { _ = a.rpc.Clear(context.Background()) }()
 		}
 		a.updateApply()
+		a.updateElapsed()
 		a.refreshScreensaver()
 	})
 

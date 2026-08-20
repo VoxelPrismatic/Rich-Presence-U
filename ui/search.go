@@ -22,6 +22,9 @@ func (a *App) setupGameSearch() {
 	a.completer.OnActivated(func(text string) {
 		a.pickCompletion(text)
 	})
+	a.completer.OnHighlighted(func(text string) {
+		a.completerHighlight = text
+	})
 
 	a.searchTimer = qt6.NewQTimer2(a.game.QObject)
 	a.searchTimer.SetSingleShot(true)
@@ -128,8 +131,32 @@ func (a *App) mergeStoreGames(extra []nso.Game) {
 	if !changed {
 		return
 	}
+	keep := a.completerHighlight
+	if keep == "" && a.completer != nil {
+		keep = a.completer.CurrentCompletion()
+	}
 	a.completerModel.SetStringList(titles)
 	if a.game.HasFocus() && strings.TrimSpace(a.game.Text()) != "" {
 		a.completer.Complete()
+		a.restoreCompletion(keep)
+	}
+}
+
+func (a *App) restoreCompletion(keep string) {
+	if a.completer == nil || keep == "" {
+		return
+	}
+	n := a.completer.CompletionCount()
+	for i := 0; i < n; i++ {
+		if !a.completer.SetCurrentRow(i) {
+			continue
+		}
+		if a.completer.CurrentCompletion() == keep {
+			if pop := a.completer.Popup(); pop != nil {
+				pop.SetCurrentIndex(a.completer.CurrentIndex())
+			}
+			a.completerHighlight = keep
+			return
+		}
 	}
 }

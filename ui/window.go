@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"strings"
+
 	"github.com/mappu/miqt/qt6"
 	"github.com/voxelprismatic/richpresenceu/nso"
 )
@@ -138,31 +140,28 @@ func (a *App) buildPresence() *qt6.QWidget {
 	pub.SetPixmap(iconPublic().Pixmap2(16, 16))
 	a.desc = qt6.NewQComboBox2()
 	a.desc.SetToolTip(a.tr.T("SHORT_DESC"))
-	a.custom = qt6.NewQLineEdit2()
-	a.custom.SetPlaceholderText(a.tr.T("DESCRIPTION_TITLE"))
-	a.custom.SetVisible(false)
-	a.desc.OnCurrentIndexChanged(func(index int) {
+	a.desc.SetEditable(true)
+	a.desc.SetInsertPolicy(qt6.QComboBox__NoInsert)
+	a.desc.OnCurrentTextChanged(func(text string) {
 		if a.silent {
 			return
 		}
 		g := a.gameState()
-		g.Mode = a.desc.ItemData(index).ToString()
-		a.putGame(g)
-		a.custom.SetVisible(g.Mode == "custom")
-		a.updateApply()
-	})
-	a.custom.OnTextChanged(func(text string) {
-		if a.silent {
-			return
+		switch {
+		case text == "{fc}":
+			g.Mode = "friendcode"
+		case strings.TrimSpace(text) == "":
+			g.Mode = "empty"
+			g.Description = ""
+		default:
+			g.Mode = "custom"
+			g.Description = text
 		}
-		g := a.gameState()
-		g.Description = text
 		a.putGame(g)
 		a.updateApply()
 	})
 	descRow.AddWidget(pub.QWidget)
 	descRow.AddWidget2(a.desc.QWidget, 1)
-	descRow.AddWidget2(a.custom.QWidget, 1)
 	col.AddLayout(descRow.QLayout)
 
 	partyRow := qt6.NewQHBoxLayout2()
@@ -276,7 +275,6 @@ func (a *App) buildDetailsForm() *qt6.QWidget {
 			return
 		}
 		a.sys().TagID = text
-		a.fillDescOptions()
 		a.updateApply()
 	})
 	addFormRow(nnGrid, 0, a.tr.T("TAG_TITLE_NNID"), a.nnid.QWidget, nil)
@@ -327,6 +325,7 @@ func (a *App) buildBar() *qt6.QWidget {
 	a.applyBtn = qt6.NewQPushButton2()
 	a.applyBtn.OnClicked(func() { a.onApply() })
 	a.timerBtn = qt6.NewQPushButton2()
+	a.timerBtn.SetCheckable(true)
 	a.timerBtn.SetIcon(iconNamed("chronometer", "chronometer"))
 	a.timerBtn.SetToolTip(a.tr.T("TIMER_TITLE"))
 	a.timerBtn.OnClicked(func() { a.onTimer() })
@@ -385,7 +384,6 @@ func (a *App) onFCChanged(cur, next *qt6.QLineEdit, text string) {
 		return
 	}
 	a.sys().TagFC = [3]string{a.fcA.Text(), a.fcB.Text(), a.fcC.Text()}
-	a.fillDescOptions()
 	a.updateApply()
 }
 
@@ -438,16 +436,20 @@ func (a *App) updateRegionItems() {
 func (a *App) fillDescOptions() {
 	a.silent = true
 	defer func() { a.silent = false }()
+	g := a.gameState()
 	a.desc.Clear()
-	tag := a.tag()
-	fcLabel := a.tr.T("TAG_TITLE_FCID")
-	if tag != "" {
-		fcLabel = tag
+	a.desc.AddItem("{fc}")
+	if strings.TrimSpace(g.Description) != "" && g.Description != "{fc}" {
+		a.desc.AddItem(g.Description)
 	}
-	a.desc.AddItem3(fcLabel, qt6.NewQVariant11("friendcode"))
-	a.desc.AddItem3(a.tr.T("SHORT_DESC_CUSTOM"), qt6.NewQVariant11("custom"))
-	a.desc.AddItem3(a.tr.T("SHORT_DESC_EMPTY"), qt6.NewQVariant11("empty"))
-	a.selectComboData(a.desc, a.gameState().Mode)
+	switch {
+	case g.Mode == "friendcode":
+		a.desc.SetCurrentText("{fc}")
+	case strings.TrimSpace(g.Description) != "":
+		a.desc.SetCurrentText(g.Description)
+	default:
+		a.desc.SetCurrentText("")
+	}
 }
 
 func (a *App) onGameTyped(text string) {
@@ -510,8 +512,6 @@ func (a *App) refreshGameUI() {
 	a.selectComboData(a.region, string(g.Region))
 	a.updateRegionItems()
 	a.fillDescOptions()
-	a.custom.SetText(g.Description)
-	a.custom.SetVisible(g.Mode == "custom")
 	a.partyOn.SetChecked(g.Party)
 	a.noParty.SetVisible(!g.Party)
 	a.partyBox.SetVisible(g.Party)

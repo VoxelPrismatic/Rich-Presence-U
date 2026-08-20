@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mappu/miqt/qt6"
@@ -55,6 +57,9 @@ func (a *App) updateApply() {
 		a.userStatus.SetText(a.tr.T("USER_CONNECTING"))
 	} else {
 		a.userStatus.SetText(a.tr.T("USER_DISCONNECTED"))
+	}
+	if a.timerBtn != nil {
+		a.timerBtn.SetChecked(a.timerRemaining() > 0)
 	}
 }
 
@@ -119,7 +124,7 @@ func (a *App) connect(andPush bool) {
 func (a *App) pushStatus() {
 	a.rememberGame()
 	a.bumpElapsed(false)
-	act := discord.Build(a.presence())
+	act := discord.Build(a.presenceForPush())
 	a.built = &act
 	id := a.nso.Meta.ClientID(a.settings.System)
 	needSwitch := a.rpc.Connected() && a.rpc.ClientID() != id
@@ -182,6 +187,46 @@ func (a *App) onVisibility() {
 	}()
 }
 
+func (a *App) timerRemaining() int {
+	if a.hide == nil || !a.hide.IsActive() {
+		return 0
+	}
+	ms := a.hide.RemainingTime()
+	if ms <= 0 {
+		return 0
+	}
+	return (ms + 999) / 1000
+}
+
+func formatClock(sec int) string {
+	if sec < 0 {
+		sec = 0
+	}
+	h := sec / 3600
+	m := (sec % 3600) / 60
+	s := sec % 60
+	if h > 0 {
+		return fmt.Sprintf("%d:%02d:%02d", h, m, s)
+	}
+	return fmt.Sprintf("%d:%02d", m, s)
+}
+
+func paddedSpin(max, digits, width int) *qt6.QSpinBox {
+	sp := qt6.NewQSpinBox2()
+	sp.SetRange(0, max)
+	sp.SetAlignment(qt6.AlignRight | qt6.AlignVCenter)
+	sp.SetSizePolicy2(qt6.QSizePolicy__Fixed, qt6.QSizePolicy__Fixed)
+	sp.SetFixedWidth(width)
+	sp.OnTextFromValue(func(super func(val int) string, val int) string {
+		return fmt.Sprintf("%0*d", digits, val)
+	})
+	sp.OnValueFromText(func(super func(text string) int, text string) int {
+		n, _ := strconv.Atoi(strings.TrimSpace(text))
+		return n
+	})
+	return sp
+}
+
 func (a *App) startHideTimer() {
 	if a.hide == nil {
 		return
@@ -189,23 +234,34 @@ func (a *App) startHideTimer() {
 	a.hide.Stop()
 	if a.settings.Timer > 0 && a.settings.Activity {
 		a.hide.Start(a.settings.Timer * 1000)
+		if a.rpc.Connected() && a.built != nil {
+			act := discord.Build(a.presenceForPush())
+			a.built = &act
+			go func() {
+				_ = a.rpc.SetActivity(context.Background(), &act)
+			}()
+		}
 	}
+	a.updateApply()
+	a.updateElapsed()
 }
 
 func (a *App) onTimer() {
 	d := qt6.NewQDialog(a.win.QWidget)
 	d.SetWindowTitle(a.tr.T("TIMER_TITLE"))
 	lay := qt6.NewQVBoxLayout(d.QWidget)
-	lay.AddWidget(qt6.NewQLabel3(popupText(a.tr.T("TIMER_HINT"))).QWidget)
+	lay.SetSizeConstraint(qt6.QLayout__SetFixedSize)
+	hint := qt6.NewQLabel3(popupText(a.tr.T("TIMER_HINT")))
+	hint.SetWordWrap(true)
+	lay.AddWidget(hint.QWidget)
 	row := qt6.NewQHBoxLayout2()
-	h := qt6.NewQSpinBox2()
-	h.SetRange(0, 99)
+	row.SetSpacing(2)
+	row.SetContentsMargins(0, 0, 0, 0)
+	h := paddedSpin(99, 2, 64)
 	h.SetToolTip(a.tr.T("TIMER_HOURS"))
-	m := qt6.NewQSpinBox2()
-	m.SetRange(0, 59)
+	m := paddedSpin(59, 2, 56)
 	m.SetToolTip(a.tr.T("TIMER_MINUTES"))
-	s := qt6.NewQSpinBox2()
-	s.SetRange(0, 59)
+	s := paddedSpin(59, 2, 56)
 	s.SetToolTip(a.tr.T("TIMER_SECONDS"))
 	sec := a.settings.Timer
 	h.SetValue(sec / 3600)
@@ -224,6 +280,9 @@ func (a *App) onTimer() {
 	if d.Exec() == int(qt6.QDialog__Accepted) {
 		a.settings.Timer = h.Value()*3600 + m.Value()*60 + s.Value()
 		a.startHideTimer()
+	}
+	if a.timerBtn != nil {
+		a.timerBtn.SetChecked(a.timerRemaining() > 0)
 	}
 }
 
@@ -288,6 +347,16 @@ func (a *App) updateElapsed() {
 	if a.elapsed == nil {
 		return
 	}
+	if rem := a.timerRemaining(); rem > 0 {
+		a.elapsed.SetText(formatClock(rem))
+		if a.timerBtn != nil {
+			a.timerBtn.SetChecked(true)
+		}
+		return
+	}
+	if a.timerBtn != nil {
+		a.timerBtn.SetChecked(false)
+	}
 	if a.start == 0 {
 		a.elapsed.SetText("0:00")
 		return
@@ -296,15 +365,7 @@ func (a *App) updateElapsed() {
 	if d < 0 {
 		d = 0
 	}
-	sec := int(d.Seconds())
-	h := sec / 3600
-	m := (sec % 3600) / 60
-	s := sec % 60
-	if h > 0 {
-		a.elapsed.SetText(fmt.Sprintf("%d:%02d:%02d", h, m, s))
-	} else {
-		a.elapsed.SetText(fmt.Sprintf("%d:%02d", m, s))
-	}
+	a.elapsed.SetText(formatClock(int(d.Seconds())))
 }
 
 func (a *App) loadAvatar(user discord.User) {
