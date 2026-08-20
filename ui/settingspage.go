@@ -19,6 +19,10 @@ func (a *App) buildSettings() *qt6.QWidget {
 	head.AddStretch()
 	box.AddLayout(head.QLayout)
 
+	form := qt6.NewQWidget2()
+	g := newFormGrid(form)
+	row := 0
+
 	a.langCombo = qt6.NewQComboBox2()
 	a.langCombo.AddItem3(a.tr.T("LANGUAGE_AUTO"), qt6.NewQVariant11(""))
 	for _, code := range localeCodes() {
@@ -31,7 +35,8 @@ func (a *App) buildSettings() *qt6.QWidget {
 		a.settings.Language = a.langCombo.ItemData(i).ToString()
 		a.tr.Set(a.settings.Language)
 	})
-	a.addSettingRow(box, a.tr.T("LANGUAGE_TITLE"), nil, a.langCombo.QWidget)
+	addFormRow(g, row, a.tr.T("LANGUAGE_TITLE"), a.langCombo.QWidget, nil)
+	row++
 
 	a.prefRegion = qt6.NewQComboBox2()
 	a.prefRegion.AddItem3(a.tr.T("REGION_US"), qt6.NewQVariant11("US"))
@@ -48,7 +53,8 @@ func (a *App) buildSettings() *qt6.QWidget {
 			a.updateApply()
 		}
 	})
-	a.addSettingRow(box, a.tr.T("REGION_TITLE"), nil, a.prefRegion.QWidget)
+	addFormRow(g, row, a.tr.T("REGION_TITLE"), a.prefRegion.QWidget, nil)
+	row++
 
 	refreshWrap := qt6.NewQWidget2()
 	rw := qt6.NewQHBoxLayout(refreshWrap)
@@ -70,7 +76,9 @@ func (a *App) buildSettings() *qt6.QWidget {
 	})
 	rw.AddWidget(now.QWidget)
 	rw.AddWidget(a.refreshCombo.QWidget)
-	a.addSettingRow(box, a.tr.T("REFRESH_TITLE"), nil, refreshWrap)
+	rw.AddStretch()
+	addFormRow(g, row, a.tr.T("REFRESH_TITLE"), refreshWrap, nil)
+	row++
 
 	a.autoConn = qt6.NewQCheckBox2()
 	a.autoConn.OnToggled(func(on bool) {
@@ -78,7 +86,8 @@ func (a *App) buildSettings() *qt6.QWidget {
 			a.settings.AutoConnect = on
 		}
 	})
-	a.addSettingRow(box, a.tr.T("AUTOCONNECT_TITLE"), helpButton(a.tr.T("AUTOCONNECT_HINT")), a.autoConn.QWidget)
+	addFormRow(g, row, a.tr.T("AUTOCONNECT_TITLE"), a.autoConn.QWidget, helpButton(a.tr.T("AUTOCONNECT_HINT")))
+	row++
 
 	a.keepOn = qt6.NewQCheckBox2()
 	a.keepOn.OnToggled(func(on bool) {
@@ -87,7 +96,8 @@ func (a *App) buildSettings() *qt6.QWidget {
 			a.refreshScreensaver()
 		}
 	})
-	a.addSettingRow(box, a.tr.T("KEEPON_TITLE"), helpButton(a.tr.T("KEEPON_HINT")), a.keepOn.QWidget)
+	addFormRow(g, row, a.tr.T("KEEPON_TITLE"), a.keepOn.QWidget, helpButton(a.tr.T("KEEPON_HINT")))
+	row++
 
 	a.debugOn = qt6.NewQCheckBox2()
 	a.debugOn.OnToggled(func(on bool) {
@@ -96,7 +106,8 @@ func (a *App) buildSettings() *qt6.QWidget {
 			a.log.SetEnabled(on)
 		}
 	})
-	a.addSettingRow(box, a.tr.T("DEBUG_TITLE"), helpButton(a.tr.T("DEBUG_HINT")), a.debugOn.QWidget)
+	addFormRow(g, row, a.tr.T("DEBUG_TITLE"), a.debugOn.QWidget, helpButton(a.tr.T("DEBUG_HINT")))
+	row++
 
 	dataWrap := qt6.NewQWidget2()
 	dw := qt6.NewQHBoxLayout(dataWrap)
@@ -113,51 +124,95 @@ func (a *App) buildSettings() *qt6.QWidget {
 	a.dataBtn.OnClicked(func() { a.onDataAction() })
 	dw.AddWidget(a.dataCombo.QWidget)
 	dw.AddWidget(a.dataBtn.QWidget)
-	a.addSettingRow(box, a.tr.T("DATA_TITLE"), helpButton(a.tr.T("DATA_HINT")), dataWrap)
+	dw.AddStretch()
+	addFormRow(g, row, a.tr.T("DATA_TITLE"), dataWrap, helpButton(a.tr.T("DATA_HINT")))
 
+	box.AddWidget(form)
 	box.AddWidget(hline().QWidget)
-
-	a.verLabel = qt6.NewQLabel2()
-	a.infoLabel = qt6.NewQLabel2()
-	box.AddWidget(a.verLabel.QWidget)
-	box.AddWidget(a.infoLabel.QWidget)
-	core := linkLabel(fmt.Sprintf("%s | <a href=\"https://github.com/ninstar/Rich-Presence-U\">NinStar</a>", a.tr.T("ABOUT_CORE")))
-	qtui := linkLabel(fmt.Sprintf("%s | <a href=\"https://github.com/VoxelPrismatic/Rich-Presence-U\">VoxelPrismatic</a>", a.tr.T("ABOUT_QT")))
-	box.AddWidget(core.QWidget)
-	box.AddWidget(qtui.QWidget)
+	box.AddWidget(a.buildAboutTable())
 	box.AddStretch()
 
 	a.fillAboutLinks()
 	return page
 }
 
-func (a *App) addSettingRow(parent *qt6.QVBoxLayout, title string, help *qt6.QToolButton, right *qt6.QWidget) {
-	row := qt6.NewQHBoxLayout2()
-	row.AddWidget(qt6.NewQLabel3(title).QWidget)
-	row.AddStretch()
-	if help != nil {
-		row.AddWidget(help.QWidget)
-	}
-	row.AddWidget(right)
-	parent.AddLayout(row.QLayout)
+func (a *App) buildAboutTable() *qt6.QWidget {
+	t := qt6.NewQTableWidget3(4, 2)
+	a.aboutTable = t
+	t.SetShowGrid(true)
+	t.SetFocusPolicy(qt6.NoFocus)
+	t.SetSelectionMode(qt6.QAbstractItemView__NoSelection)
+	t.SetEditTriggers(qt6.QAbstractItemView__NoEditTriggers)
+	t.SetHorizontalScrollBarPolicy(qt6.ScrollBarAlwaysOff)
+	t.SetVerticalScrollBarPolicy(qt6.ScrollBarAlwaysOff)
+	t.VerticalHeader().Hide()
+	t.HorizontalHeader().Hide()
+	t.HorizontalHeader().SetSectionResizeMode2(0, qt6.QHeaderView__ResizeToContents)
+	t.HorizontalHeader().SetSectionResizeMode2(1, qt6.QHeaderView__Stretch)
+	t.SetSizePolicy2(qt6.QSizePolicy__Expanding, qt6.QSizePolicy__Minimum)
+	return t.QWidget
+}
+
+func aboutKey(text string) *qt6.QTableWidgetItem {
+	it := qt6.NewQTableWidgetItem2(text)
+	it.SetFlags(qt6.ItemIsEnabled)
+	return it
+}
+
+func aboutLink(text, url string) *qt6.QLabel {
+	l := linkLabel(fmt.Sprintf(`<a href="%s">%s</a>`, url, text))
+	l.SetMargin(4)
+	return l
+}
+
+func aboutInfoCell(blogURL, helpURL string) *qt6.QWidget {
+	w := qt6.NewQWidget2()
+	lay := qt6.NewQHBoxLayout(w)
+	lay.SetContentsMargins(4, 0, 4, 0)
+	lay.SetSpacing(8)
+	lay.AddWidget(aboutLink("Blog", blogURL).QWidget)
+	lay.AddWidget(vline().QWidget)
+	lay.AddWidget(aboutLink("Help", helpURL).QWidget)
+	lay.AddStretch()
+	return w
 }
 
 func (a *App) fillAboutLinks() {
-	meta := a.nso.Meta
-	ver := fmt.Sprintf("%s | %s", a.tr.T("ABOUT_VERSION"), Version)
-	if meta.BinURL != "" {
-		ver = fmt.Sprintf("%s | <a href=\"%s\">%s</a>", a.tr.T("ABOUT_VERSION"), meta.BinURL, Version)
+	t := a.aboutTable
+	if t == nil {
+		return
 	}
-	a.verLabel.SetText(ver)
-	a.verLabel.SetOpenExternalLinks(true)
+	meta := a.nso.Meta
 	home := meta.Home
 	if home == "" {
 		home = "https://ninstars.blogspot.com/rpc"
 	}
 	help := meta.HelpURL(a.tr.Lang())
-	a.infoLabel.SetText(fmt.Sprintf("%s | <a href=\"%s\">Rich Presence U</a> | <a href=\"%s\">%s</a>",
-		a.tr.T("ABOUT_INFO"), home, help, a.tr.T("ABOUT_HELP")))
-	a.infoLabel.SetOpenExternalLinks(true)
+	changelog := meta.BinURL
+	if changelog == "" {
+		changelog = home
+	}
+
+	t.ClearContents()
+	t.SetItem(0, 0, aboutKey(a.tr.T("ABOUT_VERSION")))
+	t.SetCellWidget(0, 1, aboutLink(Version, changelog).QWidget)
+
+	t.SetItem(1, 0, aboutKey(a.tr.T("ABOUT_INFO")))
+	t.SetCellWidget(1, 1, aboutInfoCell(home, help))
+
+	t.SetItem(2, 0, aboutKey(a.tr.T("ABOUT_CORE")))
+	t.SetCellWidget(2, 1, aboutLink("NinStar", "https://github.com/ninstar/Rich-Presence-U").QWidget)
+
+	t.SetItem(3, 0, aboutKey(a.tr.T("ABOUT_QT")))
+	t.SetCellWidget(3, 1, aboutLink("VoxelPrismatic", "https://github.com/VoxelPrismatic/Rich-Presence-U").QWidget)
+
+	t.ResizeRowsToContents()
+	t.ResizeColumnToContents(0)
+	h := t.FrameWidth() * 2
+	for i := 0; i < t.RowCount(); i++ {
+		h += t.RowHeight(i)
+	}
+	t.SetFixedHeight(h + 2)
 }
 
 func (a *App) loadSettingsIntoUI() {

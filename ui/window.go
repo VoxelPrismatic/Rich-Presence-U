@@ -8,7 +8,7 @@ import (
 func (a *App) buildWindow() {
 	a.win = qt6.NewQMainWindow2()
 	a.win.SetWindowTitle("Rich Presence U")
-	a.win.SetMinimumSize2(480, 520)
+	a.win.SetMinimumSize2(480, 320)
 	if a.settings.WindowW > 0 && a.settings.WindowH > 0 {
 		a.win.Resize(a.settings.WindowW, a.settings.WindowH)
 	}
@@ -46,8 +46,7 @@ func (a *App) buildMain() *qt6.QWidget {
 	box.SetContentsMargins(0, 0, 0, 0)
 	box.AddWidget(a.buildPresence())
 	box.AddSpacing(8)
-	a.buildFriendCode(box)
-	a.buildToggles(box)
+	box.AddWidget(a.buildDetailsForm())
 	box.AddStretch()
 	scroll.SetWidget(inner)
 	root.AddWidget2(scroll.QWidget, 1)
@@ -63,10 +62,10 @@ func (a *App) buildPresence() *qt6.QWidget {
 	lay.SetContentsMargins(12, 12, 12, 12)
 
 	a.cover = qt6.NewQLabel2()
-	a.cover.SetFixedSize2(96, 96)
+	a.cover.SetFixedSize2(coverSize, coverSize)
 	a.cover.SetScaledContents(true)
 	a.cover.SetStyleSheet("background: rgba(0,0,0,40); border-radius: 8px;")
-	lay.AddWidget(a.cover.QWidget)
+	lay.AddWidget3(a.cover.QWidget, 0, qt6.AlignTop)
 
 	col := qt6.NewQVBoxLayout2()
 	col.SetSpacing(8)
@@ -113,8 +112,18 @@ func (a *App) buildPresence() *qt6.QWidget {
 		if a.silent {
 			return
 		}
+		data := a.region.ItemData(index).ToString()
+		if game, ok := a.currentGame(); ok && data != "" {
+			r, valid := nso.ParseRegion(data)
+			if !valid || !game.HasTitle(r) {
+				a.silent = true
+				a.selectComboData(a.region, "")
+				a.silent = false
+				return
+			}
+		}
 		g := a.gameState()
-		g.Region, _ = nso.ParseRegion(a.region.ItemData(index).ToString())
+		g.Region, _ = nso.ParseRegion(data)
 		a.putGame(g)
 		a.refreshGameUI()
 		a.updateApply()
@@ -229,32 +238,36 @@ func (a *App) buildPresence() *qt6.QWidget {
 	return card.QWidget
 }
 
-func (a *App) buildFriendCode(box *qt6.QVBoxLayout) {
+func (a *App) buildDetailsForm() *qt6.QWidget {
+	wrap := qt6.NewQWidget2()
+	box := qt6.NewQVBoxLayout(wrap)
+	box.SetContentsMargins(0, 0, 0, 0)
+	box.SetSpacing(6)
+
 	a.fcRow = qt6.NewQWidget2()
-	row := qt6.NewQHBoxLayout(a.fcRow)
-	row.SetContentsMargins(0, 0, 0, 0)
-	row.AddWidget(qt6.NewQLabel3(a.tr.T("TAG_TITLE_FCID")).QWidget)
-	row.AddStretch()
+	fcGrid := newFormGrid(a.fcRow)
 	a.fcPrefix = qt6.NewQLabel3("SW-")
-	row.AddWidget(a.fcPrefix.QWidget)
 	a.fcA = digitBox()
 	a.fcB = digitBox()
 	a.fcC = digitBox()
-	row.AddWidget(a.fcA.QWidget)
-	row.AddWidget(qt6.NewQLabel3("-").QWidget)
-	row.AddWidget(a.fcB.QWidget)
-	row.AddWidget(qt6.NewQLabel3("-").QWidget)
-	row.AddWidget(a.fcC.QWidget)
+	fcCtl := qt6.NewQWidget2()
+	fcLay := qt6.NewQHBoxLayout(fcCtl)
+	fcLay.SetContentsMargins(0, 0, 0, 0)
+	fcLay.AddWidget(a.fcPrefix.QWidget)
+	fcLay.AddWidget(a.fcA.QWidget)
+	fcLay.AddWidget(qt6.NewQLabel3("-").QWidget)
+	fcLay.AddWidget(a.fcB.QWidget)
+	fcLay.AddWidget(qt6.NewQLabel3("-").QWidget)
+	fcLay.AddWidget(a.fcC.QWidget)
+	fcLay.AddStretch()
 	a.fcA.OnTextChanged(func(text string) { a.onFCChanged(a.fcA, a.fcB, text) })
 	a.fcB.OnTextChanged(func(text string) { a.onFCChanged(a.fcB, a.fcC, text) })
 	a.fcC.OnTextChanged(func(text string) { a.onFCChanged(a.fcC, nil, text) })
+	addFormRow(fcGrid, 0, a.tr.T("TAG_TITLE_FCID"), fcCtl, nil)
 	box.AddWidget(a.fcRow)
 
 	a.nnidRow = qt6.NewQWidget2()
-	nr := qt6.NewQHBoxLayout(a.nnidRow)
-	nr.SetContentsMargins(0, 0, 0, 0)
-	nr.AddWidget(qt6.NewQLabel3(a.tr.T("TAG_TITLE_NNID")).QWidget)
-	nr.AddStretch()
+	nnGrid := newFormGrid(a.nnidRow)
 	a.nnid = qt6.NewQLineEdit2()
 	a.nnid.SetMaximumWidth(180)
 	a.nnid.OnTextChanged(func(text string) {
@@ -265,15 +278,11 @@ func (a *App) buildFriendCode(box *qt6.QVBoxLayout) {
 		a.fillDescOptions()
 		a.updateApply()
 	})
-	nr.AddWidget(a.nnid.QWidget)
+	addFormRow(nnGrid, 0, a.tr.T("TAG_TITLE_NNID"), a.nnid.QWidget, nil)
 	box.AddWidget(a.nnidRow)
-}
 
-func (a *App) buildToggles(box *qt6.QVBoxLayout) {
-	iconRow := qt6.NewQHBoxLayout2()
-	iconRow.AddWidget(qt6.NewQLabel3(a.tr.T("TAG_ICON_TITLE")).QWidget)
-	iconRow.AddStretch()
-	iconRow.AddWidget(helpButton(a.tr.T("TAG_ICON_HINT")).QWidget)
+	toggles := qt6.NewQWidget2()
+	tg := newFormGrid(toggles)
 	a.tagIcon = qt6.NewQCheckBox2()
 	a.tagIcon.OnToggled(func(on bool) {
 		if a.silent {
@@ -282,13 +291,7 @@ func (a *App) buildToggles(box *qt6.QVBoxLayout) {
 		a.sys().TagIcon = on
 		a.updateApply()
 	})
-	iconRow.AddWidget(a.tagIcon.QWidget)
-	box.AddLayout(iconRow.QLayout)
-
-	presRow := qt6.NewQHBoxLayout2()
-	presRow.AddWidget(qt6.NewQLabel3(a.tr.T("PRESERVE_TIME_TITLE")).QWidget)
-	presRow.AddStretch()
-	presRow.AddWidget(helpButton(a.tr.T("PRESERVE_TIME_HINT")).QWidget)
+	addFormRow(tg, 0, a.tr.T("TAG_ICON_TITLE"), a.tagIcon.QWidget, helpButton(a.tr.T("TAG_ICON_HINT")))
 	a.preserve = qt6.NewQCheckBox2()
 	a.preserve.OnToggled(func(on bool) {
 		if a.silent {
@@ -296,8 +299,9 @@ func (a *App) buildToggles(box *qt6.QVBoxLayout) {
 		}
 		a.sys().TimePreserve = on
 	})
-	presRow.AddWidget(a.preserve.QWidget)
-	box.AddLayout(presRow.QLayout)
+	addFormRow(tg, 1, a.tr.T("PRESERVE_TIME_TITLE"), a.preserve.QWidget, helpButton(a.tr.T("PRESERVE_TIME_HINT")))
+	box.AddWidget(toggles)
+	return wrap
 }
 
 func (a *App) buildBar() *qt6.QWidget {
@@ -308,6 +312,7 @@ func (a *App) buildBar() *qt6.QWidget {
 	a.avatar = qt6.NewQLabel2()
 	a.avatar.SetFixedSize2(32, 32)
 	a.avatar.SetScaledContents(true)
+	a.avatar.SetStyleSheet("background: transparent;")
 	userCol := qt6.NewQVBoxLayout2()
 	userCol.SetSpacing(0)
 	a.userName = qt6.NewQLabel3("Discord")
@@ -392,6 +397,43 @@ func (a *App) selectComboData(c *qt6.QComboBox, data string) {
 	}
 }
 
+func setComboItemEnabled(combo *qt6.QComboBox, index int, on bool) {
+	model := qt6.UnsafeNewQStandardItemModel(combo.Model().UnsafePointer())
+	if model == nil {
+		return
+	}
+	item := model.Item(index)
+	if item != nil {
+		item.SetEnabled(on)
+	}
+}
+
+func (a *App) updateRegionItems() {
+	game, ok := a.currentGame()
+	a.region.SetEnabled(ok)
+	for i := 0; i < a.region.Count(); i++ {
+		data := a.region.ItemData(i).ToString()
+		if data == "" {
+			setComboItemEnabled(a.region, i, true)
+			continue
+		}
+		r, valid := nso.ParseRegion(data)
+		setComboItemEnabled(a.region, i, ok && valid && game.HasTitle(r))
+	}
+	if !ok {
+		return
+	}
+	g := a.gameState()
+	if g.Region.Valid() && !game.HasTitle(g.Region) {
+		g.Region = ""
+		a.putGame(g)
+		prev := a.silent
+		a.silent = true
+		a.selectComboData(a.region, "")
+		a.silent = prev
+	}
+}
+
 func (a *App) fillDescOptions() {
 	a.silent = true
 	defer func() { a.silent = false }()
@@ -443,6 +485,7 @@ func (a *App) onGameTyped(text string) {
 	if prev != id {
 		a.bumpElapsed(true)
 	}
+	a.updateRegionItems()
 	a.loadCover()
 	a.updateApply()
 }
@@ -484,12 +527,11 @@ func (a *App) refreshGameUI() {
 	g := a.gameState()
 	if game, ok := a.currentGame(); ok {
 		a.game.SetText(game.Title(a.preferredRegion()))
-		a.region.SetEnabled(true)
 	} else {
 		a.game.SetText(st.Game)
-		a.region.SetEnabled(false)
 	}
 	a.selectComboData(a.region, string(g.Region))
+	a.updateRegionItems()
 	a.fillDescOptions()
 	a.custom.SetText(g.Description)
 	a.custom.SetVisible(g.Mode == "custom")

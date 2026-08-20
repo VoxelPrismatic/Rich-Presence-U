@@ -65,8 +65,7 @@ type App struct {
 	debugOn      *qt6.QCheckBox
 	dataCombo    *qt6.QComboBox
 	dataBtn      *qt6.QPushButton
-	verLabel     *qt6.QLabel
-	infoLabel    *qt6.QLabel
+	aboutTable   *qt6.QTableWidget
 
 	tick *qt6.QTimer
 	hide *qt6.QTimer
@@ -240,7 +239,7 @@ func (a *App) loadCover() {
 			if pix.IsNull() {
 				return
 			}
-			a.cover.SetPixmap(pix.Scaled(96, 96))
+			a.cover.SetPixmap(maskPixmap(pix, coverSize, 16))
 		})
 	}()
 }

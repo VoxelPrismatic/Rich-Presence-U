@@ -39,9 +39,7 @@ func Main() {
 			if err != nil {
 				a.debug("discord closed: %v", err)
 			}
-			a.busy = false
-			a.updateApply()
-			a.refreshScreensaver()
+			a.onDisconnected()
 		})
 	})
 

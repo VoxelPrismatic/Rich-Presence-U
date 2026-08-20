@@ -58,6 +58,20 @@ func (a *App) updateApply() {
 	}
 }
 
+func (a *App) onDisconnected() {
+	a.busy = false
+	a.applied = ""
+	a.built = nil
+	if a.avatar != nil {
+		a.avatar.SetPixmap(qt6.NewQPixmap())
+	}
+	if a.userName != nil {
+		a.userName.SetText("Discord")
+	}
+	a.updateApply()
+	a.refreshScreensaver()
+}
+
 func (a *App) onApply() {
 	if a.busy {
 		return
@@ -68,7 +82,7 @@ func (a *App) onApply() {
 	}
 	if !a.settings.Activity && !a.warnHide {
 		a.warnHide = true
-		qt6.QMessageBox_Information(a.win.QWidget, a.tr.T("INVISIBLE_STATUS_TITLE"), a.tr.T("INVISIBLE_STATUS_HINT"))
+		qt6.QMessageBox_Information(a.win.QWidget, a.tr.T("INVISIBLE_STATUS_TITLE"), popupText(a.tr.T("INVISIBLE_STATUS_HINT")))
 	}
 	a.pushStatus()
 }
@@ -86,8 +100,8 @@ func (a *App) connect(andPush bool) {
 			if err != nil {
 				a.debug("discord connect: %v", err)
 				a.userStatus.SetText(a.tr.T("USER_DISCONNECTED"))
-				qt6.QMessageBox_Warning(a.win.QWidget, a.tr.T("CONNECTION_ERROR_TITLE"), a.tr.T("CONNECTION_ERROR_HINT"))
-				a.updateApply()
+				qt6.QMessageBox_Warning(a.win.QWidget, a.tr.T("CONNECTION_ERROR_TITLE"), popupText(a.tr.T("CONNECTION_ERROR_HINT")))
+				a.onDisconnected()
 				return
 			}
 			a.debug("discord connected as %s", user.DisplayName())
@@ -115,8 +129,8 @@ func (a *App) pushStatus() {
 		if needSwitch {
 			if _, err := a.rpc.Connect(ctx, id); err != nil {
 				mainthread.Start(func() {
-					qt6.QMessageBox_Warning(a.win.QWidget, a.tr.T("CONNECTION_ERROR_TITLE"), a.tr.T("CONNECTION_ERROR_HINT"))
-					a.updateApply()
+					qt6.QMessageBox_Warning(a.win.QWidget, a.tr.T("CONNECTION_ERROR_TITLE"), popupText(a.tr.T("CONNECTION_ERROR_HINT")))
+					a.onDisconnected()
 				})
 				return
 			}
@@ -182,7 +196,7 @@ func (a *App) onTimer() {
 	d := qt6.NewQDialog(a.win.QWidget)
 	d.SetWindowTitle(a.tr.T("TIMER_TITLE"))
 	lay := qt6.NewQVBoxLayout(d.QWidget)
-	lay.AddWidget(qt6.NewQLabel3(a.tr.T("TIMER_HINT")).QWidget)
+	lay.AddWidget(qt6.NewQLabel3(popupText(a.tr.T("TIMER_HINT"))).QWidget)
 	row := qt6.NewQHBoxLayout2()
 	h := qt6.NewQSpinBox2()
 	h.SetRange(0, 99)
@@ -217,13 +231,13 @@ func (a *App) onDataAction() {
 	kind := a.dataCombo.CurrentData().ToString()
 	switch kind {
 	case "cache":
-		if qt6.QMessageBox_Question6(a.win.QWidget, a.tr.T("RESET_CACHE_TITLE"), a.tr.T("RESET_CACHE_HINT"), qt6.QMessageBox__Yes|qt6.QMessageBox__No, qt6.QMessageBox__No) != qt6.QMessageBox__Yes {
+		if qt6.QMessageBox_Question6(a.win.QWidget, a.tr.T("RESET_CACHE_TITLE"), popupText(a.tr.T("RESET_CACHE_HINT")), qt6.QMessageBox__Yes|qt6.QMessageBox__No, qt6.QMessageBox__No) != qt6.QMessageBox__Yes {
 			return
 		}
 		_ = a.nso.ClearCache()
 		a.refreshTitles(true)
 	case "all":
-		if qt6.QMessageBox_Question6(a.win.QWidget, a.tr.T("RESET_ALL_TITLE"), a.tr.T("RESET_ALL_HINT"), qt6.QMessageBox__Yes|qt6.QMessageBox__No, qt6.QMessageBox__No) != qt6.QMessageBox__Yes {
+		if qt6.QMessageBox_Question6(a.win.QWidget, a.tr.T("RESET_ALL_TITLE"), popupText(a.tr.T("RESET_ALL_HINT")), qt6.QMessageBox__Yes|qt6.QMessageBox__No, qt6.QMessageBox__No) != qt6.QMessageBox__Yes {
 			return
 		}
 		_ = a.nso.ResetAll()
@@ -311,7 +325,7 @@ func (a *App) loadAvatar(user discord.User) {
 		mainthread.Start(func() {
 			pix := qt6.NewQPixmap()
 			if pix.LoadFromDataWithData(b) {
-				a.avatar.SetPixmap(pix.Scaled2(32, 32, qt6.KeepAspectRatio))
+				a.avatar.SetPixmap(maskPixmap(pix, 32, 0))
 			}
 		})
 	}()

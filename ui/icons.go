@@ -62,5 +62,6 @@ func helpButton(tip string) *qt6.QToolButton {
 	b.SetAutoRaise(true)
 	b.SetToolTip(tip)
 	b.SetFocusPolicy(qt6.NoFocus)
+	b.SetCursor(qt6.NewQCursor2(qt6.WhatsThisCursor))
 	return b
 }

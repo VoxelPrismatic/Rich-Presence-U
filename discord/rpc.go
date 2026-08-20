@@ -425,9 +425,10 @@ func (c *Client) fail(err error) {
 			close(closed)
 		}
 	}
-	if fn != nil && err != nil && !errors.Is(err, net.ErrClosed) && !errors.Is(err, io.EOF) && !errors.Is(err, os.ErrClosed) {
-		fn(err)
+	if conn == nil || fn == nil {
+		return
 	}
+	fn(err)
 }
 
 func readFrame(r io.Reader) (frame, error) {
