@@ -2,3 +2,10 @@
 source/.import/
 source/export_presets.cfg
 source/export/
+/RichPresenceU
+/rpu
+debug.log
+Godot_*
+*.pck
+*.x86_64
+libunixsocket.so

@@ -1,0 +1,166 @@
+this folder is for all the QT UI elements
+
+i'm not fond of the original UI, so I want to make it mirror the discord UI a bit more closely.
+
+- discord presence mock ui; qt: hbox
+  - container element
+    - qt: image
+      - Game cover image, retrieved from existing logic.
+  - qt: vbox
+    - qt: hbox
+      - qt: dropdown; system selector
+        - (larger font)
+        - title: "Game System"
+        - Option: Nintendo 3DS
+        - Option: Nintendo Wii U
+        - Option: Nintendo Switch
+        - Option: Nintendo Switch 2
+    - qt: hbox
+      - qt: text input with dropdown selector somehow
+        - title: "Game"
+        - options should be filled from existing logic
+      - qt: dropdown
+        - region selector
+        - Option: Default
+        - Option: Americas
+        - Option: Europe
+        - Option: Japan
+    - qt: hbox
+      - qt: icon "folder-public" /usr/share/icons/breeze/places/16/folder-public.svg
+      - qt: drop down
+        - title: Short description
+        - option: (Friend code) (use actual friend code string)
+        - option: Custom
+        - option: Empty
+    - qt: hbox
+      - qt: check box
+      - when disabled:
+        - qt: label "(no party)"
+      - when enabled:
+        - qt: number with scroller
+        - qt: label "of"
+        - qt: number with scroller
+    - qt: hbox
+      - qt: icon "folder-games" /usr/share/icons/breeze/places/16/folder-games.svg
+      - qt: label "12:34"
+- settings screen: qt vbox
+  - qt: hbox
+    - qt: label "Language"
+    - qt: spacer
+    - qt: drop down
+      - include existing language selector
+  - (remove theme, that's determined by qt)
+  - (remove interface scale, that's determined by qt)
+  - qt: hbox
+    - qt: label "Preferred Region"
+    - qt: spacer
+    - qt: drop down
+      - include existing region relector
+  - qt: hbox
+    - qt: label "Check for new titles"
+    - qt: spacer
+    - qt: button (refresh)
+      - icon: "view refresh" /usr/share/icons/breeze/actions/16/view-refresh.svg
+    - qt: drop down
+      - Every 12 hours
+      - Every day
+      - Every week
+      - Never
+  - qt: hbox
+    - qt: label "auto connect on start"
+    - qt: spacer
+    - qt: help icon (like in kde system settings)
+      "When launched, the application will automatically attempt to connect to Discord."
+    - qt: toggle
+  - qt: hbox
+    - qt: label "Keep screen on"
+    - qt: spacer
+    - qt: help icon
+      "Prevents the screensaver from taking over while your status is visible. Useful if you want to keep the application always active without having to change your system settings.:
+    - qt: toggle
+  - qt: hbox
+    - qt: label "Debug log"
+    - qt: spacer
+    - qt: help icon
+      "Generates a log file for troubleshooting."
+    - qt: toggle
+  - qt: hbox
+    - qt: label "Data"
+    - qt: spacer
+    - qt: help icon
+      "Be aware that these actions can't be undone."
+    - qt: drop down
+      - option: Select one
+      - option: Clear cache
+      - option: Reset all data
+    - qt: button
+      - icon for "Select one" - "action-unavailable-symbolic" /usr/share/icons/breeze/actions/16/action-unavailable-symbolic.svg
+      - icon for "Clear cache" - "edit-clear-history" /usr/share/icons/breeze/actions/16/edit-clear-history.svg
+      - icon for "Reset all data" - "albumfolder-user-trash" /usr/share/icons/breeze/actions/16/albumfolder-user-trash.svg
+  - qt: separator
+  - qt: table
+    - Version | (n) (link to changelog)
+    - Info | [Rich Presence U] (link to ninstar's blog) | [Help] (link to google doc)
+    - Core | NinStar (link to github)
+    - Qt UI | VoxelPrismatic (link to github)
+
+- main screen; qt: vbox
+  - qt: vertical scroller
+    - mock discord element
+    - qt: hbox
+      - qt: label "Friend Code"
+      - qt: spacer
+      - qt: label "SW-"
+      - qt: four digits input
+      - qt: label "-"
+      - qt: four digits input
+      - qt: label "-"
+      - qt: four digits input
+    - qt: hbox
+      - qt: label "Friend Code Icon"
+      - qt: spacer
+      - qt: help icon
+        "Ensures that your friend code is always shown as a small icon next to the game thumbnail, even when there is no description set."
+      - qt: toggle
+    - qt: hbox
+      - qt: label "Preserve elapsed time"
+      - qt: spacer
+      - qt: help icon
+        "Your elapsed time will not be reset when changing games."
+      - qt: toggle
+  - qt: separator
+  - qt: hbox
+    - qt: hbox
+      - qt: image (discord icon)
+      - qt: vbox
+        - qt: label (discord name)
+        - qt: label (connection status)
+    - qt: spacer
+    - qt: button
+      - disconnected from discord
+        - icon: "network-disconnected" /usr/share/icons/breeze/actions/16/network-disconnect.svg
+        - title: "Connect to Discord"
+      - connecting to discord
+        - disabled
+        - icon: "network-connect" /usr/share/icons/breeze/actions/16/network-connect.svg
+        - title "Connecting to Discord..."
+      - no changes to apply
+        - disabled
+        - icon: "checkmark" /usr/share/icons/breeze/actions/16/checkmark.svg
+        - title "No pending changes"
+      - changes pending
+        - icon: "document-save" /usr/share/icons/breeze/actions/16/document-save.svg
+        - title "Apply status on Discord"
+    - qt: button
+      - icon: "chronometer" /usr/share/icons/breeze/actions/16/chronometer.svg
+      - title "Status duration"
+    - qt: button
+      - visibility enabled
+        - icon: "view-visible" /usr/share/icons/breeze/actions/16/view-visible.svg
+        - title "Status enabled"
+      - visibility disabled
+        - icon: "view-visible-off" /usr/share/icons/breeze/actions/16/view-visible-off.svg
+        - title "Status disabled"
+    - qt: button
+      - icon: "configure" /usr/share/icons/breeze/actions/16/configure.svg
+      - title "Configure"
