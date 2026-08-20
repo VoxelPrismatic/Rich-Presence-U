@@ -19,7 +19,7 @@ func (i *inhibitor) Set(on bool) {
 		if i.cmd != nil {
 			return
 		}
-		cmd := exec.Command("systemd-inhibit", "--what=idle:sleep", "--who=Rich Presence U", "--why=Discord status visible", "sleep", "infinity")
+		cmd := exec.Command("systemd-inhibit", "--what=idle:sleep", "--who=Rich Presence Qt", "--why=Discord status visible", "sleep", "infinity")
 		if err := cmd.Start(); err != nil {
 			return
 		}

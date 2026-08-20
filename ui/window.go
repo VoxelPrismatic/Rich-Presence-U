@@ -9,7 +9,7 @@ import (
 
 func (a *App) buildWindow() {
 	a.win = qt6.NewQMainWindow2()
-	a.win.SetWindowTitle("Rich Presence U")
+	a.win.SetWindowTitle("Rich Presence Qt")
 	a.win.SetMinimumSize2(480, 320)
 	if a.settings.WindowW > 0 && a.settings.WindowH > 0 {
 		a.win.Resize(a.settings.WindowW, a.settings.WindowH)
@@ -96,15 +96,11 @@ func (a *App) buildPresence() *qt6.QWidget {
 	col.AddLayout(sysRow.QLayout)
 
 	gameRow := qt6.NewQHBoxLayout2()
-	a.game = qt6.NewQLineEdit2()
+	a.game = qt6.NewQComboBox2()
+	a.game.SetEditable(true)
+	a.game.SetInsertPolicy(qt6.QComboBox__NoInsert)
 	a.game.SetPlaceholderText(a.tr.T("GAME_HINT_TYPE"))
 	a.game.SetToolTip(a.tr.T("GAME_TITLE"))
-	a.game.OnTextChanged(func(text string) {
-		if a.silent {
-			return
-		}
-		a.onGameTyped(text)
-	})
 	a.setupGameSearch()
 	a.region = qt6.NewQComboBox2()
 	a.region.AddItem3(a.tr.T("RENAME_DEFAULT"), qt6.NewQVariant11(""))
@@ -454,7 +450,8 @@ func (a *App) fillDescOptions() {
 
 func (a *App) onGameTyped(text string) {
 	prev := a.sys().Game
-	g, ok := nso.Resolve(a.nso.Games(a.settings.System), text, a.settings.Region)
+	pool := append(append([]nso.Game{}, a.searchHits...), a.nso.Games(a.settings.System)...)
+	g, ok := nso.Resolve(pool, text, a.settings.Region)
 	id := text
 	if ok {
 		id = g.ID
@@ -494,7 +491,7 @@ func (a *App) reloadSystem() {
 	a.tagIcon.SetChecked(st.TagIcon)
 	a.preserve.SetChecked(st.TimePreserve)
 	a.silent = false
-	a.refillCompleter()
+	a.refillGameCombo()
 	a.refreshGameUI()
 	a.updateApply()
 	a.updateElapsed()
@@ -505,9 +502,9 @@ func (a *App) refreshGameUI() {
 	st := a.sys()
 	g := a.gameState()
 	if game, ok := a.currentGame(); ok {
-		a.game.SetText(game.Title(a.preferredRegion()))
+		a.game.SetCurrentText(game.Title(a.preferredRegion()))
 	} else {
-		a.game.SetText(st.Game)
+		a.game.SetCurrentText(st.Game)
 	}
 	a.selectComboData(a.region, string(g.Region))
 	a.updateRegionItems()

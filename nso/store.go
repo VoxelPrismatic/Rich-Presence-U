@@ -12,7 +12,7 @@ import (
 )
 
 // GormGame is one title row in ~/.config/rich-presence-u/games.db.
-// gorm.Model supplies the integer primary key; CatalogID is the CSV slug.
+// gorm.Model supplies the integer primary key; CatalogID is the store id.
 type GormGame struct {
 	gorm.Model
 	CatalogID     string `gorm:"uniqueIndex:idx_game_sys_cat;size:128"`
@@ -89,34 +89,22 @@ func toGormGame(system System, g Game, cover string) GormGame {
 	}
 }
 
-func (c *Client) replaceSystem(system System, games []Game) error {
-	seen := map[string]int{}
-	rows := make([]GormGame, 0, len(games))
-	for _, g := range games {
-		cover := c.CoverURL(g, US)
-		if cover == "" {
-			cover = c.CoverURL(g, EU)
-		}
-		if cover == "" {
-			cover = c.CoverURL(g, JP)
-		}
-		row := toGormGame(system, g, cover)
-		if i, ok := seen[row.CatalogID]; ok {
-			rows[i] = row
+func (c *Client) purgeLegacyCatalog() error {
+	var rows []GormGame
+	if err := c.db.Find(&rows).Error; err != nil {
+		return err
+	}
+	ids := make([]uint, 0)
+	for _, row := range rows {
+		if IsStoreID(row.CatalogID) {
 			continue
 		}
-		seen[row.CatalogID] = len(rows)
-		rows = append(rows, row)
+		ids = append(ids, row.ID)
 	}
-	return c.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Unscoped().Where("system = ?", string(system)).Delete(&GormGame{}).Error; err != nil {
-			return err
-		}
-		if len(rows) == 0 {
-			return nil
-		}
-		return tx.CreateInBatches(rows, 200).Error
-	})
+	if len(ids) == 0 {
+		return nil
+	}
+	return c.db.Unscoped().Where("id IN ?", ids).Delete(&GormGame{}).Error
 }
 
 func (c *Client) loadSystem(system System) (*Catalog, error) {
@@ -131,6 +119,9 @@ func (c *Client) loadSystem(system System) (*Catalog, error) {
 			return nil, err
 		}
 		for _, row := range rows {
+			if !IsStoreID(row.CatalogID) {
+				continue
+			}
 			g := row.Game()
 			if system == BEE && sys == HAC {
 				g.ID = HACPrefix + g.NativeID()

@@ -61,7 +61,7 @@ func Build(p Presence) Activity {
 		StartTimestamp: p.Start,
 		EndTimestamp:   p.End,
 		LargeImage:     p.CoverKey,
-		LargeText:      "Rich Presence U",
+		LargeText:      "Rich Presence Qt",
 	}
 	if a.LargeImage == "" {
 		a.LargeImage = "default"

@@ -18,23 +18,12 @@ func TestRefreshAndCover(t *testing.T) {
 		hits = append(hits, r.URL.Path)
 		switch {
 		case r.URL.Path == "/meta":
-			w.Write([]byte(`[dlc]
-hac_titles="` + "http://" + r.Host + `/hac.csv"
-hac_assets="` + "http://" + r.Host + `/hac/"
-wup_titles="` + "http://" + r.Host + `/empty.csv"
-ctr_titles="` + "http://" + r.Host + `/empty.csv"
-bee_titles="` + "http://" + r.Host + `/bee.csv"
-`))
-		case strings.HasSuffix(r.URL.Path, ".csv"):
-			if strings.HasSuffix(r.URL.Path, "hac.csv") {
-				w.Write([]byte(sampleCSV))
-			} else if strings.HasSuffix(r.URL.Path, "bee.csv") {
-				w.Write([]byte("ID,US,EU,JP,US TITLE,EU TITLE,JP TITLE\namnesiareb,✓,,,Amnesia: Rebirth,,\n"))
-			} else {
-				w.Write([]byte("ID,US,EU,JP,US TITLE,EU TITLE,JP TITLE\n"))
-			}
+			w.Write([]byte("[dlc]\nhac_client=\"1259967215323840564\"\n"))
 		case strings.HasSuffix(r.URL.Path, ".jpg"):
 			w.Write(jpeg)
+		case strings.HasSuffix(r.URL.Path, ".csv"):
+			t.Errorf("should not download title csv: %s", r.URL.Path)
+			http.NotFound(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -57,20 +46,26 @@ bee_titles="` + "http://" + r.Host + `/bee.csv"
 	if _, err := os.Stat(filepath.Join(config, "games.db")); err != nil {
 		t.Fatal(err)
 	}
-	hac := c.Games(HAC)
-	if len(hac) != 3 {
-		t.Fatalf("hac games %d", len(hac))
+	if len(c.Games(HAC)) != 0 {
+		t.Fatalf("catalog should start empty, got %d", len(c.Games(HAC)))
 	}
-	bee := c.Games(BEE)
-	if len(bee) != 4 { // 1 native + 3 from hac
-		t.Fatalf("bee games %d ids=%v", len(bee), ids(bee))
+
+	g := Game{
+		ID:          "70010000001234",
+		AssetSystem: HAC,
+		Icons:       map[Region]bool{US: true, EU: true},
+		Titles:      map[Region]string{US: "1-2-Switch", EU: "1-2-Switch"},
+		CoverArt:    srv.URL + "/1-2-switch.jpg",
 	}
-	g, ok := c.Lookup(BEE, "hac::otsw")
-	if !ok || g.AssetSystem != HAC {
-		t.Fatalf("prefixed lookup: %v %+v", ok, g)
+	if err := c.Remember(HAC, g); err != nil {
+		t.Fatal(err)
+	}
+	got, ok := c.Lookup(HAC, g.ID)
+	if !ok || got.Title(US) != "1-2-Switch" {
+		t.Fatalf("remembered lookup: %v %+v", ok, got)
 	}
 	url := c.CoverURL(g, US)
-	if !strings.HasSuffix(url, "/hac/otsw.us.jpg") {
+	if url != g.CoverArt {
 		t.Fatalf("cover url %q", url)
 	}
 	path, err := c.CoverPath(context.Background(), g, US)
@@ -83,9 +78,6 @@ bee_titles="` + "http://" + r.Host + `/bee.csv"
 	if !strings.HasPrefix(path, cache) {
 		t.Fatalf("cover not in cache dir: %q", path)
 	}
-	if _, err := os.Stat(path); err != nil {
-		t.Fatal(err)
-	}
 	before := len(hits)
 	if _, err := c.CoverPath(context.Background(), g, US); err != nil {
 		t.Fatal(err)
@@ -95,7 +87,7 @@ bee_titles="` + "http://" + r.Host + `/bee.csv"
 	}
 
 	var stored GormGame
-	if err := c.db.Where("system = ? AND catalog_id = ?", "HAC", "otsw").First(&stored).Error; err != nil {
+	if err := c.db.Where("system = ? AND catalog_id = ?", "HAC", g.ID).First(&stored).Error; err != nil {
 		t.Fatal(err)
 	}
 	if stored.TitleAmericas != "1-2-Switch" || stored.CoverArt == "" {
@@ -110,7 +102,7 @@ bee_titles="` + "http://" + r.Host + `/bee.csv"
 	if err := c2.LoadCache(); err != nil {
 		t.Fatal(err)
 	}
-	if len(c2.Games(HAC)) != 3 {
+	if len(c2.Games(HAC)) != 1 {
 		t.Fatalf("reload %d", len(c2.Games(HAC)))
 	}
 
@@ -129,5 +121,43 @@ bee_titles="` + "http://" + r.Host + `/bee.csv"
 	}
 	if entries, _ := os.ReadDir(cache); len(entries) != 0 {
 		t.Fatalf("cache dir not empty: %v", entries)
+	}
+}
+
+func TestPurgeLegacyCatalog(t *testing.T) {
+	c, err := New(t.TempDir(), t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = c.Close() })
+
+	slug := Game{
+		ID:          "spyroreignited",
+		AssetSystem: HAC,
+		Icons:       map[Region]bool{US: true},
+		Titles:      map[Region]string{US: "Spyro(TM) Reignited Trilogy"},
+	}
+	store := Game{
+		ID:          "70010000012345",
+		AssetSystem: HAC,
+		Icons:       map[Region]bool{US: true, EU: true},
+		Titles:      map[Region]string{US: "Spyro Reignited Trilogy"},
+		CoverArt:    "https://example.com/spyro.jpg",
+	}
+	if err := c.upsertGame(HAC, slug); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Remember(HAC, store); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.LoadCache(); err != nil {
+		t.Fatal(err)
+	}
+	games := c.Games(HAC)
+	if len(games) != 1 || games[0].ID != store.ID {
+		t.Fatalf("legacy dump should be gone: %+v", ids(games))
+	}
+	if _, ok := c.Lookup(HAC, slug.ID); ok {
+		t.Fatal("csv slug still in catalog")
 	}
 }

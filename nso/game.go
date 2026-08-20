@@ -2,13 +2,12 @@ package nso
 
 import "strings"
 
-// Game is one row from a platform title CSV.
+// Game is one eShop title (or a previously selected store hit saved locally).
 type Game struct {
-	// ID is the catalog id. Switch titles merged into the Switch 2 list are
-	// prefixed with hac:: so they do not collide with native Switch 2 ids.
+	// ID is the store nsuid, or "eu:" + fs_id when nsuid is missing. Switch
+	// titles listed under Switch 2 are prefixed with hac::.
 	ID string
-	// AssetSystem is the platform folder used for cover art (hac when the id
-	// carries the hac:: prefix).
+	// AssetSystem is the platform the title originally shipped on.
 	AssetSystem System
 	Icons       map[Region]bool
 	Titles      map[Region]string
@@ -32,6 +31,24 @@ func (g Game) NativeID() string {
 
 func (g Game) FromSwitch() bool {
 	return strings.HasPrefix(g.ID, HACPrefix)
+}
+
+// IsStoreID reports whether id looks like an eShop nsuid / Europe fs_id,
+// as opposed to a slug from the old Rich Presence U CSV dump.
+func IsStoreID(id string) bool {
+	id = strings.TrimPrefix(id, HACPrefix)
+	if strings.HasPrefix(strings.ToLower(id), "eu:") {
+		return true
+	}
+	if len(id) < 10 {
+		return false
+	}
+	for _, r := range id {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 // Title returns the name for preferred, then US → EU → JP.

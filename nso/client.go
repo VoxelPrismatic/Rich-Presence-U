@@ -13,17 +13,17 @@ import (
 	"gorm.io/gorm"
 )
 
-const UserAgent = "RichPresenceU/2.0 (+https://github.com/VoxelPrismatic/Rich-Presence-U)"
+const UserAgent = "RichPresenceQt/2.6.0 (+https://github.com/VoxelPrismatic/Rich-Presence-U)"
 
-// Progress reports title-database download steps.
+// Progress reports metadata refresh steps.
 type Progress struct {
-	Stage   string // metadata, titles, done
+	Stage   string // metadata, done
 	System  System
 	Current int
 	Total   int
 }
 
-// Client fetches and caches the Nintendo title database and cover art.
+// Client searches the Nintendo eShop and caches selected titles and cover art.
 type Client struct {
 	ConfigDir string
 	CacheDir  string
@@ -119,8 +119,11 @@ func (c *Client) Totals(system System) map[Region]int {
 	return out
 }
 
-// LoadCache reads titles and metadata from games.db.
+// LoadCache reads metadata and previously selected store titles from games.db.
 func (c *Client) LoadCache() error {
+	if err := c.purgeLegacyCatalog(); err != nil {
+		return err
+	}
 	if err := c.loadMeta(); err != nil {
 		return err
 	}
@@ -142,47 +145,24 @@ func (c *Client) loadAllTitles() error {
 	return nil
 }
 
-// Refresh downloads metadata and every platform CSV, then writes games.db.
+// Refresh downloads Discord client metadata and drops leftover CSV titles.
 func (c *Client) Refresh(ctx context.Context, progress func(Progress)) error {
 	report := func(p Progress) {
 		if progress != nil {
 			progress(p)
 		}
 	}
-	report(Progress{Stage: "metadata", Current: 0, Total: 1 + len(Systems)})
+	report(Progress{Stage: "metadata", Current: 0, Total: 1})
 	if err := c.fetchMetadata(ctx); err != nil {
 		return err
 	}
-	c.mu.RLock()
-	meta := c.Meta
-	c.mu.RUnlock()
-	for i, sys := range Systems {
-		report(Progress{Stage: "titles", System: sys, Current: i + 1, Total: 1 + len(Systems)})
-		url := meta.TitlesURL(sys)
-		if url == "" {
-			continue
-		}
-		body, err := c.get(ctx, url)
-		if err != nil {
-			return fmt.Errorf("%s titles: %w", sys, err)
-		}
-		data, err := io.ReadAll(body)
-		body.Close()
-		if err != nil {
-			return err
-		}
-		games, err := ParseCSV(bytes.NewReader(data), sys, "")
-		if err != nil {
-			return fmt.Errorf("%s titles: %w", sys, err)
-		}
-		if err := c.replaceSystem(sys, games); err != nil {
-			return err
-		}
+	if err := c.purgeLegacyCatalog(); err != nil {
+		return err
 	}
 	if err := c.loadAllTitles(); err != nil {
 		return err
 	}
-	report(Progress{Stage: "done", Current: 1 + len(Systems), Total: 1 + len(Systems)})
+	report(Progress{Stage: "done", Current: 1, Total: 1})
 	return nil
 }
 

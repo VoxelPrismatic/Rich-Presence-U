@@ -32,7 +32,7 @@ type App struct {
 	stack         *qt6.QStackedWidget
 	cover         *qt6.QLabel
 	system        *qt6.QComboBox
-	game          *qt6.QLineEdit
+	game          *qt6.QComboBox
 	region        *qt6.QComboBox
 	desc          *qt6.QComboBox
 	partyOn       *qt6.QCheckBox
@@ -70,7 +70,6 @@ type App struct {
 	hide *qt6.QTimer
 
 	completer          *qt6.QCompleter
-	completerModel     *qt6.QStringListModel
 	searchTimer        *qt6.QTimer
 	searchHits         []nso.Game
 	searchGen          int

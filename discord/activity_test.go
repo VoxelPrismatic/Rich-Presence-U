@@ -20,7 +20,7 @@ func TestBuildDescriptionAndTag(t *testing.T) {
 	if a.SmallImage != "" {
 		t.Fatalf("no small icon without TagIcon: %+v", a)
 	}
-	if a.LargeImage != "https://example/cover.jpg" || a.LargeText != "Rich Presence U" {
+	if a.LargeImage != "https://example/cover.jpg" || a.LargeText != "Rich Presence Qt" {
 		t.Fatalf("assets %+v", a)
 	}
 

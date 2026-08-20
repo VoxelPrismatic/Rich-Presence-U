@@ -307,12 +307,12 @@ func (a *App) onDataAction() {
 func (a *App) refreshTitles(force bool) {
 	if !force && a.nso.CachePresent() && !a.nso.NeedsRefresh(a.settings.RefreshEvery(), time.Unix(a.settings.RefreshLast, 0)) {
 		_ = a.nso.LoadCache()
-		a.refillCompleter()
+		a.refillGameCombo()
 		a.refreshGameUI()
 		a.fillAboutLinks()
 		return
 	}
-	prog := qt6.NewQProgressDialog5(a.tr.T("REFRESHING_STEP_1"), "", 0, 1+len(nso.Systems), a.win.QWidget)
+	prog := qt6.NewQProgressDialog5(a.tr.T("REFRESHING_STEP_1"), "", 0, 1, a.win.QWidget)
 	prog.SetWindowTitle(a.tr.T("REFRESH_TITLE"))
 	prog.SetMinimumDuration(0)
 	prog.SetCancelButton(nil)
@@ -335,7 +335,7 @@ func (a *App) refreshTitles(force bool) {
 			} else {
 				a.settings.RefreshLast = time.Now().Unix()
 			}
-			a.refillCompleter()
+			a.refillGameCombo()
 			a.refreshGameUI()
 			a.fillAboutLinks()
 			a.updateApply()

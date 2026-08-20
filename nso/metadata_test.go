@@ -53,7 +53,10 @@ help_pt="https://example.com/help-pt"
 
 func TestDefaultMetadata(t *testing.T) {
 	m := DefaultMetadata()
-	if m.Titles[BEE] == "" || m.Assets[CTR] == "" {
+	if m.ClientID(BEE) == "" || m.ClientID(HAC) == "" {
 		t.Fatalf("defaults incomplete: %+v", m)
+	}
+	if m.Titles[HAC] != "" || m.Assets[CTR] != "" {
+		t.Fatalf("should not ship ninstar title urls: %+v", m)
 	}
 }

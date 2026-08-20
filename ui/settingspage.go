@@ -48,7 +48,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 		}
 		if r, ok := nso.ParseRegion(a.prefRegion.ItemData(i).ToString()); ok {
 			a.settings.Region = r
-			a.refillCompleter()
+			a.refillGameCombo()
 			a.refreshGameUI()
 			a.updateApply()
 		}
@@ -59,10 +59,6 @@ func (a *App) buildSettings() *qt6.QWidget {
 	refreshWrap := qt6.NewQWidget2()
 	rw := qt6.NewQHBoxLayout(refreshWrap)
 	rw.SetContentsMargins(0, 0, 0, 0)
-	now := qt6.NewQPushButton2()
-	now.SetIcon(iconNamed("view-refresh", "view-refresh"))
-	now.SetToolTip(a.tr.T("REFRESH_NOW"))
-	now.OnClicked(func() { a.refreshTitles(true) })
 	a.refreshCombo = qt6.NewQComboBox2()
 	a.refreshCombo.AddItem3(a.tr.T("REFRESH_12H"), qt6.NewQVariant4(43200))
 	a.refreshCombo.AddItem3(a.tr.T("REFRESH_DAILY"), qt6.NewQVariant4(86400))
@@ -74,8 +70,12 @@ func (a *App) buildSettings() *qt6.QWidget {
 		}
 		a.settings.Refresh = a.refreshCombo.ItemData(i).ToInt()
 	})
-	rw.AddWidget(now.QWidget)
+	now := qt6.NewQPushButton2()
+	now.SetIcon(iconNamed("view-refresh", "view-refresh"))
+	now.SetToolTip(a.tr.T("REFRESH_NOW"))
+	now.OnClicked(func() { a.refreshTitles(true) })
 	rw.AddWidget(a.refreshCombo.QWidget)
+	rw.AddWidget(now.QWidget)
 	rw.AddStretch()
 	addFormRow(g, row, a.tr.T("REFRESH_TITLE"), refreshWrap, nil)
 	row++
@@ -165,18 +165,6 @@ func aboutLink(text, url string) *qt6.QLabel {
 	return l
 }
 
-func aboutInfoCell(blogURL, helpURL string) *qt6.QWidget {
-	w := qt6.NewQWidget2()
-	lay := qt6.NewQHBoxLayout(w)
-	lay.SetContentsMargins(4, 0, 4, 0)
-	lay.SetSpacing(8)
-	lay.AddWidget(aboutLink("Blog", blogURL).QWidget)
-	lay.AddWidget(vline().QWidget)
-	lay.AddWidget(aboutLink("Help", helpURL).QWidget)
-	lay.AddStretch()
-	return w
-}
-
 func (a *App) fillAboutLinks() {
 	t := a.aboutTable
 	if t == nil {
@@ -187,7 +175,6 @@ func (a *App) fillAboutLinks() {
 	if home == "" {
 		home = "https://ninstars.blogspot.com/rpc"
 	}
-	help := meta.HelpURL(a.tr.Lang())
 	changelog := meta.BinURL
 	if changelog == "" {
 		changelog = home
@@ -198,7 +185,7 @@ func (a *App) fillAboutLinks() {
 	t.SetCellWidget(0, 1, aboutLink(Version, changelog).QWidget)
 
 	t.SetItem(1, 0, aboutKey(a.tr.T("ABOUT_INFO")))
-	t.SetCellWidget(1, 1, aboutInfoCell(home, help))
+	t.SetCellWidget(1, 1, aboutLink("Blog", home).QWidget)
 
 	t.SetItem(2, 0, aboutKey(a.tr.T("ABOUT_CORE")))
 	t.SetCellWidget(2, 1, aboutLink("NinStar", "https://github.com/ninstar/Rich-Presence-U").QWidget)

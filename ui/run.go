@@ -12,7 +12,7 @@ import (
 
 func Main() {
 	qt6.NewQApplication(os.Args)
-	qt6.QCoreApplication_SetApplicationName("Rich Presence U")
+	qt6.QCoreApplication_SetApplicationName("Rich Presence Qt")
 	qt6.QCoreApplication_SetApplicationVersion(Version)
 	qt6.QCoreApplication_SetOrganizationName("VoxelPrismatic")
 

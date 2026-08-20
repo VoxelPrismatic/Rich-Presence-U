@@ -1,76 +1,68 @@
 package nso
 
-import (
-	"strings"
-	"testing"
-)
+import "testing"
 
-const sampleCSV = `ID,US,EU,JP,US TITLE,EU TITLE,JP TITLE
-otsw,✓,,,1-2-Switch,,
-swsmd,✓,✓,✓,SEGA Genesis - Nintendo Switch Online,SEGA Mega Drive - Nintendo Switch Online,セガ メガドライブ for Nintendo Switch Online
-empty,,,,,,,
-short,✓
-custom,,✓,,,"Only Europe",
-`
+func sampleGames() []Game {
+	return []Game{
+		{
+			ID:          "70010000000001",
+			AssetSystem: HAC,
+			Icons:       map[Region]bool{US: true},
+			Titles:      map[Region]string{US: "1-2-Switch"},
+			CoverArt:    "https://example.com/otsw.jpg",
+		},
+		{
+			ID:          "70010000000002",
+			AssetSystem: HAC,
+			Icons:       map[Region]bool{US: true, EU: true, JP: true},
+			Titles: map[Region]string{
+				US: "SEGA Genesis - Nintendo Switch Online",
+				EU: "SEGA Mega Drive - Nintendo Switch Online",
+				JP: "セガ メガドライブ for Nintendo Switch Online",
+			},
+			CoverArt: "https://example.com/sega.jpg",
+		},
+		{
+			ID:          "70010000000003",
+			AssetSystem: HAC,
+			Icons:       map[Region]bool{EU: true},
+			Titles:      map[Region]string{EU: "Only Europe"},
+			CoverArt:    "https://example.com/eu.jpg",
+		},
+	}
+}
 
-func TestParseCSV(t *testing.T) {
-	games, err := ParseCSV(strings.NewReader(sampleCSV), HAC, "")
-	if err != nil {
-		t.Fatal(err)
+func TestCatalogLookup(t *testing.T) {
+	cat := newCatalog()
+	for _, g := range sampleGames() {
+		cat.add(g)
 	}
-	if len(games) != 3 {
-		t.Fatalf("got %d games: %+v", len(games), ids(games))
-	}
-	g := games[0]
-	if g.ID != "otsw" || g.AssetSystem != HAC {
-		t.Fatalf("first game: %+v", g)
-	}
-	if !g.Icons[US] || g.Icons[EU] || g.Title(US) != "1-2-Switch" {
-		t.Fatalf("otsw fields: %+v", g)
+	g, ok := cat.Lookup("70010000000001")
+	if !ok || g.Title(US) != "1-2-Switch" {
+		t.Fatalf("lookup: %v %+v", ok, g)
 	}
 	if g.Title(JP) != "1-2-Switch" {
 		t.Fatalf("fallback title %q", g.Title(JP))
 	}
-	sega := games[1]
+	sega, _ := cat.Lookup("70010000000002")
 	if sega.Title(EU) != "SEGA Mega Drive - Nintendo Switch Online" {
 		t.Fatalf("eu title %q", sega.Title(EU))
 	}
 	if r, ok := sega.IconRegion(JP); !ok || r != JP {
 		t.Fatalf("jp icon region %q %v", r, ok)
 	}
-	onlyEU := games[2]
+	onlyEU, _ := cat.Lookup("70010000000003")
 	if onlyEU.Title(US) != "Only Europe" {
 		t.Fatalf("eu-only fallback %q", onlyEU.Title(US))
 	}
-	if r, ok := onlyEU.IconRegion(US); !ok || r != EU {
-		t.Fatalf("icon fallback %q %v", r, ok)
-	}
 }
 
-func TestParseCSVDedupes(t *testing.T) {
-	raw := sampleCSV + "otsw,✓,,,1-2-Switch Deluxe,,\n"
-	games, err := ParseCSV(strings.NewReader(raw), HAC, "")
-	if err != nil {
-		t.Fatal(err)
+func TestIsStoreID(t *testing.T) {
+	if !IsStoreID("70010000012345") || !IsStoreID("hac::70010000012345") || !IsStoreID("eu:2987033") {
+		t.Fatal("store ids should match")
 	}
-	if len(games) != 3 {
-		t.Fatalf("got %d games: %v", len(games), ids(games))
-	}
-	if games[0].Title(US) != "1-2-Switch Deluxe" {
-		t.Fatalf("last duplicate should win: %q", games[0].Title(US))
-	}
-}
-
-func TestParseCSVPrefix(t *testing.T) {
-	games, err := ParseCSV(strings.NewReader(sampleCSV), HAC, HACPrefix)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if games[0].ID != "hac::otsw" {
-		t.Fatalf("prefixed id %q", games[0].ID)
-	}
-	if games[0].NativeID() != "otsw" || !games[0].FromSwitch() {
-		t.Fatalf("native id helpers: %+v", games[0])
+	if IsStoreID("spyroreignited") || IsStoreID("otsw") || IsStoreID("hac::otsw") {
+		t.Fatal("csv slugs should not match")
 	}
 }
 

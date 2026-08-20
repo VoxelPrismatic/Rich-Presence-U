@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	Version = "2.0.0"
-	Build   = 2000
+	Version = "2.6.0"
+	Build   = 2600
 )
 
 type Settings struct {

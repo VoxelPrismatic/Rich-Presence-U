@@ -20,10 +20,9 @@ const (
 	defaultBEEClient = "1385689410502263016"
 )
 
-const defaultDB = "https://github.com/ninstar/Rich-Presence-U-DB/raw/main/titles/"
-
-// Metadata is the remote config that points at title CSVs, Discord client ids,
-// and help/home URLs. Defaults match the original app when the gist is missing.
+// Metadata is the remote config for Discord client ids and help/home URLs.
+// Title CSV / asset fields are still parsed from the gist if present, but are
+// not used: search is eShop-only.
 type Metadata struct {
 	Latest  int
 	Minimal int
@@ -54,18 +53,8 @@ func DefaultMetadata() Metadata {
 			CTR: defaultCTRClient,
 			BEE: defaultBEEClient,
 		},
-		Titles: map[System]string{
-			WUP: defaultDB + "wup.csv",
-			HAC: defaultDB + "hac.csv",
-			CTR: defaultDB + "ctr.csv",
-			BEE: defaultDB + "bee.csv",
-		},
-		Assets: map[System]string{
-			WUP: defaultDB + "wup/",
-			HAC: defaultDB + "hac/",
-			CTR: defaultDB + "ctr/",
-			BEE: defaultDB + "bee/",
-		},
+		Titles:   map[System]string{},
+		Assets:   map[System]string{},
 		Home:     "https://ninstars.blogspot.com/rpc",
 		Code:     "https://github.com/ninstar/Rich-Presence-U",
 		Contact:  "https://ninstar.carrd.co",
