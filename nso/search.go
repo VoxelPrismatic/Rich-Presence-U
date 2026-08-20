@@ -72,3 +72,34 @@ func Resolve(games []Game, typed string, display Region) (game Game, verified bo
 	}
 	return Game{ID: typed, Titles: map[Region]string{}, Icons: map[Region]bool{}}, false
 }
+
+// MergeGames puts local catalog hits first, then extra (eShop) titles that
+// are not already present. limit 0 means no cap.
+func MergeGames(local []Hit, extra []Game, limit int) []Game {
+	out := make([]Game, 0, len(local)+len(extra))
+	seenID := map[string]bool{}
+	seenTitle := map[string]bool{}
+	add := func(g Game, title string) bool {
+		lt := strings.ToLower(title)
+		if seenID[g.ID] || (lt != "" && seenTitle[lt]) {
+			return false
+		}
+		seenID[g.ID] = true
+		if lt != "" {
+			seenTitle[lt] = true
+		}
+		out = append(out, g)
+		return limit > 0 && len(out) >= limit
+	}
+	for _, h := range local {
+		if add(h.Game, h.DisplayTitle) {
+			return out
+		}
+	}
+	for _, g := range extra {
+		if add(g, g.Title(US)) {
+			return out
+		}
+	}
+	return out
+}

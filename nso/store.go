@@ -198,6 +198,24 @@ func (c *Client) loadMeta() error {
 	return nil
 }
 
+func (c *Client) upsertGame(system System, g Game) error {
+	cover := g.CoverArt
+	if cover == "" {
+		cover = c.CoverURL(g, US)
+	}
+	row := toGormGame(system, g, cover)
+	var existing GormGame
+	err := c.db.Where("system = ? AND catalog_id = ?", string(system), g.ID).First(&existing).Error
+	if err == gorm.ErrRecordNotFound {
+		return c.db.Create(&row).Error
+	}
+	if err != nil {
+		return err
+	}
+	row.ID = existing.ID
+	return c.db.Save(&row).Error
+}
+
 func (c *Client) gameCount() (int64, error) {
 	var n int64
 	err := c.db.Model(&GormGame{}).Count(&n).Error

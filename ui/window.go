@@ -103,6 +103,7 @@ func (a *App) buildPresence() *qt6.QWidget {
 		}
 		a.onGameTyped(text)
 	})
+	a.setupGameSearch()
 	a.region = qt6.NewQComboBox2()
 	a.region.AddItem3(a.tr.T("RENAME_DEFAULT"), qt6.NewQVariant11(""))
 	a.region.AddItem3(a.tr.T("REGION_US"), qt6.NewQVariant11("US"))
@@ -449,31 +450,6 @@ func (a *App) fillDescOptions() {
 	a.selectComboData(a.desc, a.gameState().Mode)
 }
 
-func (a *App) refillCompleter() {
-	titles := []string{}
-	for _, g := range a.nso.Games(a.settings.System) {
-		titles = append(titles, g.Title(a.settings.Region))
-	}
-	comp := qt6.NewQCompleter6(titles, a.game.QObject)
-	comp.SetCaseSensitivity(qt6.CaseInsensitive)
-	comp.SetFilterMode(qt6.MatchContains)
-	comp.SetMaxVisibleItems(8)
-	comp.OnActivated(func(text string) {
-		hits := nso.Search(a.nso.Games(a.settings.System), text, a.settings.Region)
-		if len(hits) == 0 {
-			return
-		}
-		for _, h := range hits {
-			if h.DisplayTitle == text || h.Exact {
-				a.setGameID(h.Game.ID)
-				return
-			}
-		}
-		a.setGameID(hits[0].Game.ID)
-	})
-	a.game.SetCompleter(comp)
-}
-
 func (a *App) onGameTyped(text string) {
 	prev := a.sys().Game
 	g, ok := nso.Resolve(a.nso.Games(a.settings.System), text, a.settings.Region)
@@ -485,6 +461,7 @@ func (a *App) onGameTyped(text string) {
 	if prev != id {
 		a.bumpElapsed(true)
 	}
+	a.scheduleGameSearch()
 	a.updateRegionItems()
 	a.loadCover()
 	a.updateApply()

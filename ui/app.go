@@ -69,6 +69,12 @@ type App struct {
 
 	tick *qt6.QTimer
 	hide *qt6.QTimer
+
+	completer      *qt6.QCompleter
+	completerModel *qt6.QStringListModel
+	searchTimer    *qt6.QTimer
+	searchHits     []nso.Game
+	searchGen      int
 }
 
 func (a *App) sys() *SystemState {
@@ -239,7 +245,7 @@ func (a *App) loadCover() {
 			if pix.IsNull() {
 				return
 			}
-			a.cover.SetPixmap(maskPixmap(pix, coverSize, 16))
+			a.cover.SetPixmap(maskPixmap(pix, coverSize, 8))
 		})
 	}()
 }

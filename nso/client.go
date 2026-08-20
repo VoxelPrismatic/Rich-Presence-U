@@ -29,6 +29,7 @@ type Client struct {
 	CacheDir  string
 	HTTP      *http.Client
 	MetaURL   string
+	StoreURL  string
 
 	db       *gorm.DB
 	mu       sync.RWMutex
