@@ -24,12 +24,13 @@ func Main() {
 
 	settings, systems := loadPrefs(client.ConfigDir)
 	a := &App{
-		tr:       newI18n(),
-		nso:      client,
-		rpc:      discord.New(),
-		settings: settings,
-		systems:  systems,
-		log:      logger{dir: client.ConfigDir},
+		tr:           newI18n(),
+		nso:          client,
+		rpc:          discord.New(),
+		settings:     settings,
+		systems:      systems,
+		log:          logger{dir: client.ConfigDir},
+		timerEnabled: settings.Timer > 0,
 	}
 	a.log.SetEnabled(a.settings.DebugLog)
 	a.tr.Set(a.settings.Language)

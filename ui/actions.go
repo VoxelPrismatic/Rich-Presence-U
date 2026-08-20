@@ -240,7 +240,7 @@ func (a *App) startHideTimer() {
 		return
 	}
 	a.hide.Stop()
-	if a.settings.Timer > 0 && a.settings.Activity {
+	if a.timerEnabled && a.settings.Timer > 0 && a.settings.Activity {
 		a.hide.Start(a.settings.Timer * 1000)
 		if a.rpc.Connected() && a.built != nil {
 			act := discord.Build(a.presenceForPush())
@@ -284,15 +284,43 @@ func (a *App) onTimer() {
 	btns := qt6.NewQDialogButtonBox4(qt6.QDialogButtonBox__Ok | qt6.QDialogButtonBox__Cancel)
 	btns.OnAccepted(func() { d.Accept() })
 	btns.OnRejected(func() { d.Reject() })
+	remove := btns.AddButton2(a.tr.T("TIMER_REMOVE"), qt6.QDialogButtonBox__DestructiveRole)
+	remove.OnClicked(func() { d.Done(2) })
 	lay.AddWidget(btns.QWidget)
-	if d.Exec() == int(qt6.QDialog__Accepted) {
+	switch d.Exec() {
+	case int(qt6.QDialog__Accepted):
 		a.settings.Timer = h.Value()*3600 + m.Value()*60 + s.Value()
+		a.timerEnabled = a.settings.Timer > 0
 		a.persist()
 		a.startHideTimer()
+	case 2:
+		a.clearTimer()
 	}
 	if a.timerBtn != nil {
 		a.timerBtn.SetChecked(a.timerRemaining() > 0)
 	}
+}
+
+func (a *App) stopTimer() {
+	a.timerEnabled = false
+	if a.hide != nil {
+		a.hide.Stop()
+	}
+	if a.rpc.Connected() && a.settings.Activity && a.built != nil {
+		act := discord.Build(a.presenceForPush())
+		a.built = &act
+		go func() {
+			_ = a.rpc.SetActivity(context.Background(), &act)
+		}()
+	}
+	a.updateApply()
+	a.updateElapsed()
+}
+
+func (a *App) clearTimer() {
+	a.settings.Timer = 0
+	a.persist()
+	a.stopTimer()
 }
 
 func (a *App) onDataAction() {
@@ -321,10 +349,16 @@ func (a *App) updateElapsed() {
 	}
 	if rem := a.timerRemaining(); rem > 0 {
 		a.elapsed.SetText(formatClock(rem))
+		if a.elapsedIcon != nil {
+			a.elapsedIcon.SetPixmap(iconNamed("chronometer", "chronometer").Pixmap2(16, 16))
+		}
 		if a.timerBtn != nil {
 			a.timerBtn.SetChecked(true)
 		}
 		return
+	}
+	if a.elapsedIcon != nil {
+		a.elapsedIcon.SetPixmap(iconGames().Pixmap2(16, 16))
 	}
 	if a.timerBtn != nil {
 		a.timerBtn.SetChecked(false)

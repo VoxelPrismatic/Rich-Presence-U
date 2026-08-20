@@ -12,8 +12,8 @@ const (
 	BEE System = "BEE" // Nintendo Switch 2
 )
 
-// Systems is the display order used by the original app.
-var Systems = []System{CTR, WUP, HAC, BEE}
+// Systems is the consoles shown in the UI.
+var Systems = []System{HAC, BEE}
 
 // Region is a storefront region for titles and icons.
 type Region string

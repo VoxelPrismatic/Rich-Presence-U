@@ -55,6 +55,7 @@ func TestRefreshAndCover(t *testing.T) {
 		AssetSystem: HAC,
 		Icons:       map[Region]bool{US: true, EU: true},
 		Titles:      map[Region]string{US: "1-2-Switch", EU: "1-2-Switch"},
+		Covers:      map[Region]string{US: srv.URL + "/1-2-switch.jpg"},
 		CoverArt:    srv.URL + "/1-2-switch.jpg",
 	}
 	if err := c.Remember(HAC, g); err != nil {
@@ -72,7 +73,7 @@ func TestRefreshAndCover(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if filepath.Base(path) != "70010000001234.jpg" {
+	if filepath.Base(path) != "70010000001234.us.jpg" {
 		t.Fatalf("cover filename %q", path)
 	}
 	if !strings.HasPrefix(path, cache) {
@@ -90,7 +91,7 @@ func TestRefreshAndCover(t *testing.T) {
 	if err := c.db.Where("system = ? AND catalog_id = ?", "HAC", g.ID).First(&stored).Error; err != nil {
 		t.Fatal(err)
 	}
-	if stored.TitleAmericas != "1-2-Switch" || stored.CoverArt == "" {
+	if stored.TitleAmericas != "1-2-Switch" || stored.CoverAmericas == "" {
 		t.Fatalf("gorm row %+v", stored)
 	}
 

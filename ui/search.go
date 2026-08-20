@@ -52,16 +52,55 @@ func (a *App) refillGameCombo() {
 	a.setSearchHits(a.nso.Games(a.settings.System), false)
 }
 
+func (a *App) comboCaret() (text string, cursor, selStart, selLen int, focused, popup bool) {
+	if a.game == nil {
+		return
+	}
+	text = a.game.CurrentText()
+	if v := a.game.View(); v != nil {
+		popup = v.IsVisible()
+	}
+	le := a.game.LineEdit()
+	if le == nil {
+		return
+	}
+	focused = le.HasFocus()
+	cursor = le.CursorPosition()
+	if le.HasSelectedText() {
+		selStart = le.SelectionStart()
+		selLen = le.SelectionLength()
+	}
+	return
+}
+
+func (a *App) restoreComboCaret(text string, cursor, selStart, selLen int, focused bool) {
+	if a.game == nil {
+		return
+	}
+	a.game.SetEditText(text)
+	le := a.game.LineEdit()
+	if le == nil {
+		return
+	}
+	if focused {
+		le.SetFocus()
+	}
+	if selLen > 0 {
+		le.SetSelection(selStart, selLen)
+		return
+	}
+	if cursor < 0 {
+		cursor = 0
+	}
+	le.SetCursorPosition(cursor)
+}
+
 func (a *App) setSearchHits(games []nso.Game, show bool) {
 	if a.game == nil {
 		return
 	}
 	a.searchHits = games
-	typed := a.game.CurrentText()
-	cursor := 0
-	if le := a.game.LineEdit(); le != nil {
-		cursor = le.CursorPosition()
-	}
+	text, cursor, selStart, selLen, focused, popup := a.comboCaret()
 	keep := a.gameHighlight
 	prev := a.silent
 	a.silent = true
@@ -70,22 +109,15 @@ func (a *App) setSearchHits(games []nso.Game, show bool) {
 	for _, g := range games {
 		a.game.AddItem3(g.Title(region), qt6.NewQVariant11(g.ID))
 	}
-	a.game.SetEditText(typed)
-	if le := a.game.LineEdit(); le != nil {
-		le.SetCursorPosition(cursor)
+	a.restoreComboCaret(text, cursor, selStart, selLen, focused)
+	if show && a.game.Count() > 0 && strings.TrimSpace(text) != "" && (focused || popup) {
+		if !popup {
+			a.game.ShowPopup()
+		}
+		a.restoreComboCaret(text, cursor, selStart, selLen, true)
+		a.restoreGameHighlight(keep)
 	}
 	a.silent = prev
-	if !show || !a.gameSearchOpen() || strings.TrimSpace(typed) == "" || a.game.Count() == 0 {
-		return
-	}
-	a.game.ShowPopup()
-	a.silent = true
-	a.game.SetEditText(typed)
-	if le := a.game.LineEdit(); le != nil {
-		le.SetCursorPosition(cursor)
-	}
-	a.silent = prev
-	a.restoreGameHighlight(keep)
 }
 
 func (a *App) pickGameIndex(index int) {
@@ -128,6 +160,7 @@ func (a *App) rememberAndSet(id string) {
 			return
 		}
 		_ = a.nso.Remember(sys, filled)
+		a.nso.CacheCovers(ctx, filled)
 		mainthread.Start(func() {
 			if a.sys().Game != id {
 				return

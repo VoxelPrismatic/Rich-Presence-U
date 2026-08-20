@@ -66,6 +66,7 @@ TIMER_CONFIRM,Kész!
 TIMER_HOURS,Óra
 TIMER_MINUTES,Perc
 TIMER_SECONDS,Másodperc
+TIMER_REMOVE,Eltávolítás
 RESET_ALL_CANCEL,Mégse
 RESET_ALL_CONFIRM,Törlés
 RESET_ALL_HINT,"Minden konfiguráció alapértelmezésre kerül, még a játékaid beállításai is. Biztos vagy benne?\n\nA szoftver a tevékenység után automatikusan leáll."

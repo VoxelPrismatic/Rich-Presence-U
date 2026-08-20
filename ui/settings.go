@@ -134,7 +134,7 @@ func savePrefs(dir string, s Settings, systems map[nso.System]*SystemState) erro
 }
 
 func normalizeSettings(s Settings) Settings {
-	if !s.System.Valid() {
+	if !s.System.Valid() || s.System == nso.CTR || s.System == nso.WUP {
 		s.System = nso.HAC
 	}
 	if !s.Region.Valid() {

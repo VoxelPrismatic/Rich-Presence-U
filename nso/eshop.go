@@ -17,7 +17,6 @@ const (
 	usAlgoliaKey    = "a29c6927638bfd8cee23993e51e721c9"
 	usAlgoliaURL    = "https://U3B6GR4UA3-dsn.algolia.net/1/indexes/store_all_products_en_us/query"
 	jpImageBase     = "https://img-eshop.cdn.nintendo.net/i/"
-	usImageBase     = "https://assets.nintendo.com/image/upload/q_auto/f_auto/"
 )
 
 type euResponse struct {
@@ -50,6 +49,7 @@ type jpItem struct {
 	Hard  string `json:"hard"`
 	Sform string `json:"sform"`
 	IURL  string `json:"iurl"`
+	SiURL string `json:"siurl"`
 }
 
 type usQuery struct {
@@ -130,13 +130,57 @@ func gameForRegion(id string, asset System, region Region, title, cover string) 
 		AssetSystem: asset,
 		Icons:       map[Region]bool{},
 		Titles:      map[Region]string{},
-		CoverArt:    cover,
+		Covers:      map[Region]string{},
 	}
 	if title != "" {
 		g.Titles[region] = title
-		g.Icons[region] = true
 	}
+	g.setCover(region, cover)
 	return g
+}
+
+func euCover(image, square string) string {
+	img := strings.TrimSpace(image)
+	low := strings.ToLower(img)
+	if strings.Contains(low, "packshot") || strings.Contains(img, "/PS_") {
+		return img
+	}
+	if sq := strings.TrimSpace(square); sq != "" {
+		return sq
+	}
+	return img
+}
+
+func jpCover(iurl, siurl string) string {
+	siurl = strings.TrimSpace(siurl)
+	if strings.HasPrefix(siurl, "http") {
+		return siurl
+	}
+	if siurl != "" {
+		return jpImageBase + siurl + ".jpg"
+	}
+	iurl = strings.TrimSpace(iurl)
+	if iurl == "" {
+		return ""
+	}
+	if strings.HasPrefix(iurl, "http") {
+		return iurl
+	}
+	return jpImageBase + iurl + ".jpg"
+}
+
+func usCover(square, image string) string {
+	if sq := strings.TrimSpace(square); sq != "" {
+		return sq
+	}
+	image = strings.TrimSpace(image)
+	if image == "" {
+		return ""
+	}
+	if strings.HasPrefix(image, "http") {
+		return image
+	}
+	return "https://assets.nintendo.com/image/upload/ar_1:1,c_pad,w_512,h_512,b_auto,q_auto,f_auto/" + strings.TrimPrefix(image, "/")
 }
 
 func (d euDoc) id() string {
@@ -164,11 +208,7 @@ func (d euDoc) Game(want System, region Region) (Game, bool) {
 		id = strings.ToLower(strings.ReplaceAll(title, " ", ""))
 	}
 	id = applyIDPrefix(id, want, asset)
-	cover := d.ImageSq
-	if cover == "" {
-		cover = d.Image
-	}
-	return gameForRegion(id, asset, region, title, cover), true
+	return gameForRegion(id, asset, region, title, euCover(d.Image, d.ImageSq)), true
 }
 
 func jpAsset(hard, sform string) System {
@@ -204,11 +244,7 @@ func (d jpItem) Game(want System) (Game, bool) {
 		return Game{}, false
 	}
 	id = applyIDPrefix(id, want, asset)
-	cover := ""
-	if d.IURL != "" {
-		cover = jpImageBase + d.IURL + ".jpg"
-	}
-	return gameForRegion(id, asset, JP, title, cover), true
+	return gameForRegion(id, asset, JP, title, jpCover(d.IURL, d.SiURL)), true
 }
 
 func usAsset(platform, code string) System {
@@ -242,15 +278,7 @@ func (d usHit) Game(want System) (Game, bool) {
 		return Game{}, false
 	}
 	id = applyIDPrefix(id, want, asset)
-	cover := d.ProductImageSquare
-	if cover == "" && d.ProductImage != "" {
-		if strings.HasPrefix(d.ProductImage, "http") {
-			cover = d.ProductImage
-		} else {
-			cover = usImageBase + strings.TrimPrefix(d.ProductImage, "/")
-		}
-	}
-	return gameForRegion(id, asset, US, title, cover), true
+	return gameForRegion(id, asset, US, title, usCover(d.ProductImageSquare, d.ProductImage)), true
 }
 
 // SearchStore looks up titles on the eShop for the given preferred region.
@@ -386,10 +414,13 @@ func (c *Client) searchAmerica(ctx context.Context, query string, system System)
 	return out, nil
 }
 
-// EnrichRegions fills missing regional titles by searching the other stores.
+// EnrichRegions fills missing regional titles and cover URLs from the other stores.
 func (c *Client) EnrichRegions(ctx context.Context, g Game, system System) (Game, error) {
 	if g.Titles == nil {
 		g.Titles = map[Region]string{}
+	}
+	if g.Covers == nil {
+		g.Covers = map[Region]string{}
 	}
 	if g.Icons == nil {
 		g.Icons = map[Region]bool{}
@@ -399,7 +430,9 @@ func (c *Client) EnrichRegions(ctx context.Context, g Game, system System) (Game
 		return g, nil
 	}
 	for _, region := range Regions {
-		if g.Titles[region] != "" {
+		needTitle := g.Titles[region] == ""
+		needCover := g.Covers[region] == ""
+		if !needTitle && !needCover {
 			continue
 		}
 		hits, err := c.SearchStore(ctx, seed, system, region)
@@ -414,12 +447,15 @@ func (c *Client) EnrichRegions(ctx context.Context, g Game, system System) (Game
 			if !titlesSimilar(seed, ht) {
 				continue
 			}
-			if t := h.Titles[region]; t != "" {
-				g.Titles[region] = t
-				g.Icons[region] = true
+			if needTitle {
+				if t := h.Titles[region]; t != "" {
+					g.Titles[region] = t
+				}
 			}
-			if g.CoverArt == "" {
-				g.CoverArt = h.CoverArt
+			if needCover {
+				if u, _ := h.Cover(region); u != "" {
+					g.setCover(region, u)
+				}
 			}
 			break
 		}

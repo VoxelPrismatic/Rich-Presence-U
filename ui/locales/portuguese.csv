@@ -66,6 +66,7 @@ TIMER_CONFIRM,Pronto!
 TIMER_HOURS,Horas
 TIMER_MINUTES,Minutos
 TIMER_SECONDS,Segundos
+TIMER_REMOVE,Remover
 RESET_ALL_CANCEL,Deixa pra lá...
 RESET_ALL_CONFIRM,Sim. Redefina tudo
 RESET_ALL_HINT,"Todas as configurações serão redefinidas para a padrão, incluindo suas configurações definidas por jogo.\n\nTem certeza de que quer continuar com essa ação?\n\nO aplicativo será fechado depois disso."

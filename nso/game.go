@@ -11,7 +11,9 @@ type Game struct {
 	AssetSystem System
 	Icons       map[Region]bool
 	Titles      map[Region]string
-	CoverArt    string
+	// Covers is the eShop image URL per region. CoverArt is a legacy fallback.
+	Covers   map[Region]string
+	CoverArt string
 }
 
 func (g Game) EnglishTitle() string {
@@ -79,4 +81,43 @@ func (g Game) IconRegion(preferred Region) (Region, bool) {
 
 func (g Game) HasTitle(region Region) bool {
 	return g.Titles[region] != ""
+}
+
+// Cover returns the image URL for preferred, then any other region, then CoverArt.
+func (g Game) Cover(preferred Region) (url string, region Region) {
+	if g.Covers != nil {
+		if u := g.Covers[preferred]; u != "" {
+			return u, preferred
+		}
+		for _, r := range Regions {
+			if u := g.Covers[r]; u != "" {
+				return u, r
+			}
+		}
+	}
+	if g.CoverArt != "" {
+		if preferred.Valid() {
+			return g.CoverArt, preferred
+		}
+		return g.CoverArt, US
+	}
+	return "", ""
+}
+
+func (g *Game) setCover(region Region, url string) {
+	url = strings.TrimSpace(url)
+	if url == "" || !region.Valid() {
+		return
+	}
+	if g.Covers == nil {
+		g.Covers = map[Region]string{}
+	}
+	if g.Icons == nil {
+		g.Icons = map[Region]bool{}
+	}
+	g.Covers[region] = url
+	g.Icons[region] = true
+	if g.CoverArt == "" {
+		g.CoverArt = url
+	}
 }

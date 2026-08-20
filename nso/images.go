@@ -12,21 +12,24 @@ import (
 
 // CoverURL is the remote image key Discord accepts (a full https URL).
 func (c *Client) CoverURL(game Game, preferred Region) string {
-	_ = preferred
-	return game.CoverArt
+	u, _ := game.Cover(preferred)
+	return u
 }
 
 // CoverPath returns a cached local image, downloading it when missing.
-// Files live in ~/.cache/rich-presence-u/{nsuid}.ext
+// Files live in ~/.cache/rich-presence-u/{nsuid}.{region}.ext
 func (c *Client) CoverPath(ctx context.Context, game Game, preferred Region) (string, error) {
 	if !game.Verified() {
 		return "", fmt.Errorf("unverified game")
 	}
-	url := c.CoverURL(game, preferred)
+	url, region := game.Cover(preferred)
 	if url == "" {
 		return "", fmt.Errorf("no cover url for %s", game.ID)
 	}
-	path := c.imagePath(game, url)
+	if !region.Valid() {
+		region = preferred
+	}
+	path := c.imagePath(game, url, region)
 	if st, err := os.Stat(path); err == nil && st.Size() > 0 {
 		return path, nil
 	}
@@ -60,6 +63,16 @@ func (c *Client) CoverPath(ctx context.Context, game Game, preferred Region) (st
 	return path, nil
 }
 
+// CacheCovers downloads every regional cover that has a URL.
+func (c *Client) CacheCovers(ctx context.Context, game Game) {
+	for _, region := range Regions {
+		if game.Covers[region] == "" {
+			continue
+		}
+		_, _ = c.CoverPath(ctx, game, region)
+	}
+}
+
 // CoverKey is the Discord asset key: a URL, or "default" when none exists.
 func (c *Client) CoverKey(game Game, preferred Region) string {
 	if u := c.CoverURL(game, preferred); u != "" {
@@ -68,7 +81,7 @@ func (c *Client) CoverKey(game Game, preferred Region) string {
 	return "default"
 }
 
-func (c *Client) imagePath(game Game, url string) string {
+func (c *Client) imagePath(game Game, url string, region Region) string {
 	ext := filepath.Ext(strings.ToLower(url))
 	if ext == "" || len(ext) > 5 {
 		ext = ".jpg"
@@ -76,6 +89,9 @@ func (c *Client) imagePath(game Game, url string) string {
 	name := sanitizeFile(game.NativeID())
 	if name == "" {
 		name = sanitizeFile(game.EnglishTitle())
+	}
+	if region.Valid() {
+		name += "." + region.Lower()
 	}
 	return filepath.Join(c.CacheDir, name+ext)
 }

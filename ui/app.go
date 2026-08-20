@@ -41,6 +41,8 @@ type App struct {
 	partySize     *qt6.QSpinBox
 	partyMax      *qt6.QSpinBox
 	elapsed       *qt6.QLabel
+	elapsedIcon   *qt6.QLabel
+	timerEnabled  bool
 	fcPrefix      *qt6.QLabel
 	fcA, fcB, fcC *qt6.QLineEdit
 	nnid          *qt6.QLineEdit
@@ -178,7 +180,7 @@ func (a *App) presenceForPush() discord.Presence {
 	if rem := a.timerRemaining(); rem > 0 {
 		p.End = time.Now().Unix() + int64(rem)
 		p.Start = 0
-	} else if a.settings.Timer > 0 && a.settings.Activity {
+	} else if a.timerEnabled && a.settings.Timer > 0 && a.settings.Activity {
 		p.End = time.Now().Unix() + int64(a.settings.Timer)
 		p.Start = 0
 	}

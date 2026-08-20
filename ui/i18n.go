@@ -47,6 +47,7 @@ var fallback = map[string]string{
 	"ABOUT_INFO":        "Info",
 	"SETTINGS_BACK":     "Back",
 	"GAME_SYSTEM":       "Game System",
+	"TIMER_REMOVE":      "Remove",
 }
 
 type i18n struct {

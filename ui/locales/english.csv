@@ -66,6 +66,7 @@ TIMER_CONFIRM,Done!
 TIMER_HOURS,Hours
 TIMER_MINUTES,Minutes
 TIMER_SECONDS,Seconds
+TIMER_REMOVE,Remove
 RESET_ALL_CANCEL,Never mind...
 RESET_ALL_CONFIRM,Yes. Reset everything
 RESET_ALL_HINT,"All configurations will be reseted to default, including your per-game settings.\n\nAre you sure you want to proceed with this action?\n\nThe app will be closed after this."

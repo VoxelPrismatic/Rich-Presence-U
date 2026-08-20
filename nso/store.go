@@ -22,6 +22,9 @@ type GormGame struct {
 	TitleEurope   string `gorm:"column:title_europe"`
 	TitleJapan    string `gorm:"column:title_japan"`
 	CoverArt      string
+	CoverAmericas string `gorm:"column:cover_americas"`
+	CoverEurope   string `gorm:"column:cover_europe"`
+	CoverJapan    string `gorm:"column:cover_japan"`
 	IconAmericas  bool
 	IconEurope    bool
 	IconJapan     bool
@@ -54,6 +57,7 @@ func (r GormGame) Game() Game {
 		AssetSystem: System(r.AssetSystem),
 		Icons:       map[Region]bool{},
 		Titles:      map[Region]string{},
+		Covers:      map[Region]string{},
 		CoverArt:    r.CoverArt,
 	}
 	if g.AssetSystem == "" {
@@ -62,6 +66,19 @@ func (r GormGame) Game() Game {
 	setTitle(g.Titles, US, r.TitleAmericas)
 	setTitle(g.Titles, EU, r.TitleEurope)
 	setTitle(g.Titles, JP, r.TitleJapan)
+	g.setCover(US, r.CoverAmericas)
+	g.setCover(EU, r.CoverEurope)
+	g.setCover(JP, r.CoverJapan)
+	if r.CoverArt != "" && coverOf(g, US) == "" && coverOf(g, EU) == "" && coverOf(g, JP) == "" {
+		for _, region := range Regions {
+			if g.Titles[region] != "" {
+				g.setCover(region, r.CoverArt)
+			}
+		}
+		if coverOf(g, US) == "" && coverOf(g, EU) == "" && coverOf(g, JP) == "" {
+			g.setCover(US, r.CoverArt)
+		}
+	}
 	if r.IconAmericas {
 		g.Icons[US] = true
 	}
@@ -74,7 +91,17 @@ func (r GormGame) Game() Game {
 	return g
 }
 
+func coverOf(g Game, region Region) string {
+	if g.Covers != nil {
+		return g.Covers[region]
+	}
+	return ""
+}
+
 func toGormGame(system System, g Game, cover string) GormGame {
+	if cover == "" {
+		cover, _ = g.Cover("")
+	}
 	return GormGame{
 		CatalogID:     g.ID,
 		System:        string(system),
@@ -83,9 +110,12 @@ func toGormGame(system System, g Game, cover string) GormGame {
 		TitleEurope:   g.Titles[EU],
 		TitleJapan:    g.Titles[JP],
 		CoverArt:      cover,
-		IconAmericas:  g.Icons[US],
-		IconEurope:    g.Icons[EU],
-		IconJapan:     g.Icons[JP],
+		CoverAmericas: coverOf(g, US),
+		CoverEurope:   coverOf(g, EU),
+		CoverJapan:    coverOf(g, JP),
+		IconAmericas:  g.Icons[US] || coverOf(g, US) != "",
+		IconEurope:    g.Icons[EU] || coverOf(g, EU) != "",
+		IconJapan:     g.Icons[JP] || coverOf(g, JP) != "",
 	}
 }
 

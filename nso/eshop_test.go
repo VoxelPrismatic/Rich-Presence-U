@@ -88,6 +88,22 @@ func TestJapanAndAmericaParse(t *testing.T) {
 	}
 }
 
+func TestCoverPickers(t *testing.T) {
+	pack := euCover("https://www.nintendo.com/eu/media/images/05_packshots/PS_NSwitch_Foo.jpg", "https://sq")
+	if pack == "https://sq" {
+		t.Fatal("packshot should win")
+	}
+	if euCover("", "https://sq") != "https://sq" {
+		t.Fatal("square fallback")
+	}
+	if jpCover("hash", "https://square") != "https://square" {
+		t.Fatal("siurl url")
+	}
+	if jpCover("ihash", "shash") != jpImageBase+"shash.jpg" {
+		t.Fatal("siurl hash")
+	}
+}
+
 func TestTitlesSimilar(t *testing.T) {
 	if !titlesSimilar("Splatoon™ Raiders", "Splatoon Raiders") {
 		t.Fatal("tm should not block match")
