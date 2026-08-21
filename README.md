@@ -9,18 +9,16 @@ Nintendo Switch 2 gamers and display them on your Discord profile.
 
 ## Features
 
-- An ever-growing collection of titles and icons from multiple regions.
+- Search directly from the eShop
+  - No manual mirrors with missing titles
+- Buy from eShop button
+- Simple, intuitive Qt UI (no Godot)
+- Simplified install (compared to NinStar's repo)
+  - Auto-install on Linux!
 - Various customization options:
-  - Game renaming and personalized descriptions.
+  - Short game descriptions
   - Nintendo Friend Code sharing.
   - Elapsed time, time remaining, party size, and more.
-
-> [!WARNING]
-> This fork pulls directly from the eShop, not [NinStar's dedicated database][database].
-> This compromise allows users to search for _any_ game at the expense of removing
-> NinStar's database support for Wii U and 3DS.
-> If you find that these consoles are absolutely necessary, let me know, and I'll
-> see what I can do.
 
 <img src="./.github/user_interface.png" alt="User interface" width="100%">
 
@@ -36,49 +34,37 @@ Nintendo Switch 2 gamers and display them on your Discord profile.
     </a>
 </p>
 
-# Localize
-
-If you are interested in contributing by translating the project into other languages,
-you can use the [english.csv][locale_template] as a template.
-
-> [!Important]
-> Cells are separated by commas `,` and delimited by double quotation marks `"`.
-
-- Other translations: [/source/locales][locales]
-
 # Install
 
-If you use Linux with KDE, just navigate over to the Releases tab and download the binary!
-
-Everyone else, however:
-
-1. [Download][zip] the repository or clone it via command line:
-   `git clone https://github.com/voxelprismatic/Rich-Presence-U.git`
-2. (extract the zip if necessary)
-3. Download [Golang][golang]
-4. Open a terminal or command prompt
-5. Navigate to the folder with the code
-   - You'll see `main.go`
-6. Run `go build main.go`
-   - This will take lots of time
-7. Double-click the `main` binary
+- If you use KDE:
+  1. Download the binary, [`app`][app.bin]
+  2. Open it, and press "Install"
+- If you use another Linux desktop:
+  1. Install Qt and Breeze icons
+  2. Download the binary, [`app`][app.bin]
+  3. Open it, and press "Install"
+- Everyone else, however: (warning, untested on mac and windows)
+  1. [Download][zip] the repository or clone it via command line:
+     `git clone https://github.com/voxelprismatic/Rich-Presence-U.git`
+  2. (extract the zip if necessary)
+  3. Download [Golang][golang] and [Qt][qt]
+  4. Open a terminal or command prompt
+  5. Navigate to the folder with the code
+     - You'll see `main.go`
+  6. Run `go build -o app main.go`
+     - This will take lots of time
+  7. Double-click the `app` binary
 
 # Credits
 
-- **Art, Code & Design** - Ny'hrarr (NinStar)
-- **Database** - [All contributors](https://github.com/ninstar/Rich-Presence-U-DB#credits)
-- **Translations**
-  - **Deutsch** - DeeKay-Deluxe
-  - **Español** - JhoanLsuper
-  - **French** - ProdtML, Celestial04_
-  - **Magyar** - Feeniheelo
-  - **Nederlands** - Thomanski
-  - **Português** - Ny'hrarr (NinStar)
+- **Original Codebase/Idea** - NinStar
+- **Rewrite** - VoxelPrismatic
 
 # Third-party code
 
 - [**discord-rpc**](https://github.com/discord/discord-rpc) - Discord
 
+[qt]: https://www.qt.io/development/download-qt-installer
 [database]: https://github.com/ninstar/Rich-Presence-U-DB
 [zip]: https://github.com/voxelprismatic/Rich-Presence-U/archive/refs/heads/main.zip
 [godot]: https://godotengine.org/download/archive/3.6.2-stable/
@@ -88,3 +74,4 @@ Everyone else, however:
 [locale_template]: https://github.com/ninstar/Rich-Presence-U/tree/main/source/locales/english.csv
 [rcedit]: https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe
 [golang]: https://go.dev/
+[app.bin]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/download/v2.6.0/app
