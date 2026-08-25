@@ -7,12 +7,16 @@ permissions:
   contents: write
 
 jobs:
-  prerelease:
+  version:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Read version and check tag
+        id: meta
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -27,8 +31,8 @@ jobs:
           esac
           echo "VERSION=$VERSION"
           echo "TAG=$TAG"
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "::error::Release $TAG already exists. Bump VERSION in svc/version.go."
             exit 1
@@ -38,26 +42,74 @@ jobs:
             exit 1
           fi
 
+  build:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: app
+          - os: macos-latest
+            artifact: app-macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
 
-      - name: Install Qt
+      - name: Install Qt (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends gcc g++ pkg-config qt6-base-dev libgl1-mesa-dev libxkbcommon-dev
 
+      - name: Install Qt (macOS)
+        if: runner.os == 'macOS'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+        run: |
+          brew install qt pkg-config
+          QT_PREFIX="$(brew --prefix qt)"
+          echo "PATH=${QT_PREFIX}/bin:${PATH}" >> "$GITHUB_ENV"
+          echo "PKG_CONFIG_PATH=${QT_PREFIX}/lib/pkgconfig" >> "$GITHUB_ENV"
+          echo "LDFLAGS=-L${QT_PREFIX}/lib" >> "$GITHUB_ENV"
+          echo "CPPFLAGS=-I${QT_PREFIX}/include" >> "$GITHUB_ENV"
+
       - name: Build
         env:
           CGO_ENABLED: 1
-        run: go build -o app .
+        run: go build -o "${{ matrix.artifact }}" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
+
+  prerelease:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
 
       - name: Create pre-release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
         run: |
+          chmod +x dist/app dist/app-macos
+          NOTES="Pre-release ${TAG} from ${GITHUB_SHA}."$'\n\n'"- \`app\` — Linux x86_64"$'\n'"- \`app-macos\` — macOS (Apple Silicon)"
           gh release create "$TAG" \
             --prerelease \
             --title "$TAG" \
-            --notes "Pre-release ${TAG} from ${GITHUB_SHA}." \
-            app logo.png rich-presence-u.desktop
+            --notes "$NOTES" \
+            dist/app dist/app-macos logo.png rich-presence-u.desktop
