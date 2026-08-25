@@ -13,7 +13,6 @@ import (
 
 func Main() {
 	qt6.NewQApplication(os.Args)
-	qt6.QCoreApplication_SetApplicationName("Rich Presence Qt")
 	qt6.QCoreApplication_SetApplicationVersion(svc.VERSION)
 	qt6.QCoreApplication_SetOrganizationName("VoxelPrismatic")
 	nso.UserAgent = svc.UserAgent()
@@ -39,6 +38,7 @@ func Main() {
 	}
 	a.log.SetEnabled(a.settings.DebugLog)
 	a.tr.Set(a.settings.Language)
+	qt6.QCoreApplication_SetApplicationName(a.tr.T("APP_TITLE"))
 
 	a.rpc.OnClose(func(err error) {
 		mainthread.Start(func() {

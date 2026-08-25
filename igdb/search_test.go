@@ -15,11 +15,11 @@ func TestSearchLabels(t *testing.T) {
 	cases := []struct {
 		q, slug, label string
 	}{
-		{"gamecube", "GCN", "Nintendo > GameCube"},
-		{"GAME CUBE", "GCN", "Nintendo > GameCube"},
-		{"amiga", "Amiga", "Commodore > Commodore Amiga"},
-		{"64dd", "64DD", "Nintendo 64 > N64 DD"},
-		{"ns2", "NS2", "Switch > Nintendo Switch 2"},
+		{"gamecube", "GCN", "Nintendo" + chevron + "GameCube"},
+		{"GAME CUBE", "GCN", "Nintendo" + chevron + "GameCube"},
+		{"amiga", "Amiga", "Commodore" + chevron + "Commodore Amiga"},
+		{"64dd", "64DD", "Nintendo 64" + chevron + "N64 DD"},
+		{"ns2", "NS2", "Switch" + chevron + "Nintendo Switch 2"},
 	}
 	for _, tc := range cases {
 		hits := Search(tc.q)

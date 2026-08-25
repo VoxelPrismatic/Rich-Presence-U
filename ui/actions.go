@@ -68,7 +68,7 @@ func (a *App) onDisconnected() {
 		a.avatar.SetPixmap(qt6.NewQPixmap())
 	}
 	if a.userName != nil {
-		a.userName.SetText("Discord")
+		a.userName.SetText(a.tr.T("USER_DISCORD"))
 	}
 	a.updateApply()
 	a.refreshScreensaver()

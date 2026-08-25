@@ -9,7 +9,7 @@ import (
 
 func (a *App) buildWindow() {
 	a.win = qt6.NewQMainWindow2()
-	a.win.SetWindowTitle("Rich Presence Qt")
+	a.win.SetWindowTitle(a.tr.T("APP_TITLE"))
 	a.win.SetMinimumSize2(480, 320)
 	if a.settings.WindowW > 0 && a.settings.WindowH > 0 {
 		a.win.Resize(a.settings.WindowW, a.settings.WindowH)
@@ -72,6 +72,12 @@ func (a *App) buildPresence() *qt6.QWidget {
 	col := qt6.NewQVBoxLayout2()
 	col.SetSpacing(8)
 
+	sysRow := qt6.NewQHBoxLayout2()
+	a.system = qt6.NewQComboBox2()
+	a.setupPlatformSelector()
+	sysRow.AddWidget(a.system.QWidget)
+	col.AddLayout(sysRow.QLayout)
+
 	gameRow := qt6.NewQHBoxLayout2()
 	a.game = qt6.NewQComboBox2()
 	a.game.SetEditable(true)
@@ -111,12 +117,6 @@ func (a *App) buildPresence() *qt6.QWidget {
 	gameRow.AddWidget(a.region.QWidget)
 	gameRow.AddWidget(a.infoBtn.QWidget)
 	col.AddLayout(gameRow.QLayout)
-
-	sysRow := qt6.NewQHBoxLayout2()
-	a.system = qt6.NewQComboBox2()
-	a.setupPlatformSelector()
-	sysRow.AddWidget(a.system.QWidget)
-	col.AddLayout(sysRow.QLayout)
 
 	descRow := qt6.NewQHBoxLayout2()
 	pub := qt6.NewQLabel2()
@@ -298,7 +298,7 @@ func (a *App) buildBar() *qt6.QWidget {
 	a.avatar.SetStyleSheet("background: transparent;")
 	userCol := qt6.NewQVBoxLayout2()
 	userCol.SetSpacing(0)
-	a.userName = qt6.NewQLabel3("Discord")
+	a.userName = qt6.NewQLabel3(a.tr.T("USER_DISCORD"))
 	a.userStatus = qt6.NewQLabel3(a.tr.T("USER_DISCONNECTED"))
 	userCol.AddWidget(a.userName.QWidget)
 	userCol.AddWidget(a.userStatus.QWidget)
@@ -432,11 +432,11 @@ func (a *App) friendCodeLabel() string {
 	}
 	switch sys {
 	case nso.WUP:
-		return "ID: —"
+		return a.tr.T("TAG_PLACEHOLDER_NNID")
 	case nso.HAC, nso.BEE:
-		return "SW-0000-0000-0000"
+		return a.tr.T("TAG_PLACEHOLDER_SW")
 	default:
-		return "FC: 0000-0000-0000"
+		return a.tr.T("TAG_PLACEHOLDER_FC")
 	}
 }
 

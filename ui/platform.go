@@ -83,7 +83,8 @@ func (a *App) buildPlatPopup() {
 	back.SetIcon(iconNamed("go-previous", "go-previous"))
 	back.SetAutoRaise(true)
 	back.SetToolButtonStyle(qt6.ToolButtonIconOnly)
-	back.SetStyleSheet("QToolButton { border: none; background: transparent; }")
+	back.SetFocusPolicy(qt6.StrongFocus)
+	back.SetStyleSheet("QToolButton { border: 1px solid transparent; background: transparent; border-radius: 4px; } QToolButton:focus { border: 1px solid palette(highlight); }")
 	back.SetToolTip(a.tr.T("SETTINGS_BACK"))
 	back.OnClicked(func() { a.platGoBack() })
 	crumb := qt6.NewQLabel2()
@@ -318,14 +319,7 @@ func (a *App) updatePlatHeader() {
 	}
 	if a.platSearching {
 		a.platBack.SetEnabled(true)
-		q := ""
-		if a.platSearch != nil {
-			q = strings.TrimSpace("Results")
-		}
-		if q == "" {
-			q = a.tr.T("PLATFORM_SEARCH")
-		}
-		a.platCrumb.SetText(q)
+		a.platCrumb.SetText(a.tr.T("PLATFORM_RESULTS"))
 		return
 	}
 	root := a.platList.RootIndex()
@@ -550,12 +544,7 @@ func (a *App) updateInfoButton() {
 	}
 	if store {
 		a.infoBtn.SetIcon(iconShop())
-		shop := "eShop"
-		if p, ok := a.platform(); ok {
-			if name := p.ShopName(); name != "" {
-				shop = name
-			}
-		}
+		shop := a.tr.T("SHOP_ESHOP")
 		a.infoBtn.SetToolTip(fmt.Sprintf(a.tr.T("OPEN_SHOP_PAGE"), shop))
 		u := ""
 		if game, ok := a.currentGame(); ok {

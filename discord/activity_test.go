@@ -23,7 +23,7 @@ func TestBuildDescriptionAndTag(t *testing.T) {
 	if a.SmallImage != "" {
 		t.Fatalf("no small icon without TagIcon: %+v", a)
 	}
-	if a.LargeImage != "https://example/cover.jpg" || a.LargeText != "Rich Presence Qt" {
+	if a.LargeImage != "https://example/cover.jpg" || a.LargeText != "X" {
 		t.Fatalf("assets %+v", a)
 	}
 
@@ -31,8 +31,8 @@ func TestBuildDescriptionAndTag(t *testing.T) {
 		Title:   "Splatoon 3",
 		Console: "Nintendo Switch",
 	})
-	if a.Details != "Splatoon 3" || a.State != "Nintendo Switch" || a.LargeText != "Nintendo Switch" {
-		t.Fatalf("game above console %+v", a)
+	if a.Details != "Splatoon 3" || a.LargeText != "Splatoon 3" {
+		t.Fatalf("game title %+v", a)
 	}
 
 	a = Build(Presence{

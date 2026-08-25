@@ -162,7 +162,7 @@ func (a *App) fillAboutLinks() {
 	t.SetCellWidget(0, 1, aboutLink(svc.VERSION, changelog).QWidget)
 
 	t.SetItem(1, 0, aboutKey(a.tr.T("ABOUT_INFO")))
-	t.SetCellWidget(1, 1, aboutLink("Blog", home).QWidget)
+	t.SetCellWidget(1, 1, aboutLink(a.tr.T("ABOUT_BLOG"), home).QWidget)
 
 	t.SetItem(2, 0, aboutKey(a.tr.T("ABOUT_CORE")))
 	t.SetCellWidget(2, 1, aboutLink("NinStar", "https://github.com/ninstar/Rich-Presence-U").QWidget)
