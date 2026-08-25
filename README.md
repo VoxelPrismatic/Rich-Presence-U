@@ -84,4 +84,4 @@ A simple application that allows you to create your own activity statuses for al
 [locale_template]: https://github.com/ninstar/Rich-Presence-U/tree/main/source/locales/english.csv
 [rcedit]: https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe
 [golang]: https://go.dev/
-[app.bin]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/download/v2.6.0/app
+[app.bin]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_linux

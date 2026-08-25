@@ -49,9 +49,9 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact: app
+            artifact: rich-presence-qt_linux
           - os: macos-latest
-            artifact: app-macos
+            artifact: rich-presence-qt_macOS.app
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -64,7 +64,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends gcc g++ pkg-config qt6-base-dev libgl1-mesa-dev libxkbcommon-dev
+          sudo apt-get install -y --no-install-recommends gcc g++ pkg-config qt6-base-dev qt6-svg-dev libqt6svg6 libgl1-mesa-dev libxkbcommon-dev
 
       - name: Install Qt (macOS)
         if: runner.os == 'macOS'
@@ -84,12 +84,39 @@ jobs:
       - name: Build
         env:
           CGO_ENABLED: 1
-        run: go build -o "${{ matrix.artifact }}" .
+        run: |
+          go build -o rpqt .
+          go build -tags portable -o rpqt-portable .
+
+      - name: Package
+        run: cp rpqt "${{ matrix.artifact }}"
+
+      - name: Package portable (Linux)
+        if: runner.os == 'Linux'
+        run: bash .github/scripts/pack-linux-portable.sh rpqt-portable 'rich-presence-qt_linux_(portable)'
+
+      - name: Package portable (macOS)
+        if: runner.os == 'macOS'
+        run: bash .github/scripts/pack-macos-portable.sh rpqt-portable 'rich-presence-qt_macOS_(portable).app'
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.artifact }}
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'Linux'
+        with:
+          name: rich-presence-qt_linux_(portable)
+          path: rich-presence-qt_linux_(portable)
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: runner.os == 'macOS'
+        with:
+          name: rich-presence-qt_macOS_(portable)
+          path: rich-presence-qt_macOS_(portable).app.zip
           if-no-files-found: error
 
   build-windows:
@@ -107,6 +134,7 @@ jobs:
             mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-pkgconf
             mingw-w64-ucrt-x86_64-qt6-base
+            mingw-w64-ucrt-x86_64-qt6-svg
             mingw-w64-ucrt-x86_64-qt6-tools
 
       - uses: actions/setup-go@v5
@@ -119,19 +147,25 @@ jobs:
           CGO_ENABLED: 1
         run: |
           export PATH="/ucrt64/bin:$PATH"
-          go build -ldflags "-s -w -H windowsgui" -o app-windows.exe .
+          go build -ldflags "-s -w -H windowsgui" -o rich-presence-qt_windows.exe .
           mkdir dist-win
-          mv app-windows.exe dist-win/
-          windeployqt6 dist-win/app-windows.exe
+          go build -tags portable -ldflags "-s -w -H windowsgui" -o dist-win/rich-presence-qt_windows_\(portable\).exe .
+          windeployqt6 dist-win/rich-presence-qt_windows_\(portable\).exe
 
-      - name: Zip
+      - name: Zip portable
         shell: pwsh
-        run: Compress-Archive -Path dist-win\* -DestinationPath app-windows.zip
+        run: Compress-Archive -Path dist-win\* -DestinationPath "rich-presence-qt_windows_(portable).zip"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: app-windows
-          path: app-windows.zip
+          name: rich-presence-qt_windows
+          path: rich-presence-qt_windows.exe
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rich-presence-qt_windows_(portable)
+          path: rich-presence-qt_windows_(portable).zip
           if-no-files-found: error
 
   prerelease:
@@ -150,10 +184,22 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.version.outputs.tag }}
         run: |
-          chmod +x dist/app dist/app-macos
-          NOTES="Pre-release ${TAG} from ${GITHUB_SHA}."$'\n\n'"- \`app\` — Linux x86_64"$'\n'"- \`app-macos\` — macOS (Apple Silicon)"$'\n'"- \`app-windows.zip\` — Windows x86_64"
+          chmod +x dist/rich-presence-qt_linux dist/rich-presence-qt_macOS.app "dist/rich-presence-qt_linux_(portable)" || true
+          NOTES="Pre-release ${TAG} from ${GITHUB_SHA}."$'\n\n'
+          NOTES+="- \`rich-presence-qt_linux\` — Linux x86_64"$'\n'
+          NOTES+="- \`rich-presence-qt_linux_(portable)\` — Linux x86_64 AppImage (bundled Qt)"$'\n'
+          NOTES+="- \`rich-presence-qt_macOS.app\` — macOS (Apple Silicon)"$'\n'
+          NOTES+="- \`rich-presence-qt_macOS_(portable).app.zip\` — macOS app bundle (bundled Qt)"$'\n'
+          NOTES+="- \`rich-presence-qt_windows.exe\` — Windows x86_64"$'\n'
+          NOTES+="- \`rich-presence-qt_windows_(portable).zip\` — Windows x86_64 (\`rich-presence-qt_windows_(portable).exe\` + Qt DLLs)"
           gh release create "$TAG" \
             --prerelease \
             --title "$TAG" \
             --notes "$NOTES" \
-            dist/app dist/app-macos dist/app-windows.zip logo.png rich-presence-u.desktop
+            dist/rich-presence-qt_linux \
+            "dist/rich-presence-qt_linux_(portable)" \
+            dist/rich-presence-qt_macOS.app \
+            "dist/rich-presence-qt_macOS_(portable).app.zip" \
+            dist/rich-presence-qt_windows.exe \
+            "dist/rich-presence-qt_windows_(portable).zip" \
+            logo.png rich-presence-u.desktop

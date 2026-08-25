@@ -49,7 +49,7 @@ func TestPresent(t *testing.T) {
 func TestInstallTo(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/releases/download/v2.6.0/logo.png":
+		case "/releases/download/v" + VERSION + "/logo.png":
 			w.Write([]byte("png"))
 		default:
 			http.NotFound(w, r)
@@ -79,6 +79,12 @@ func TestInstallTo(t *testing.T) {
 	}
 	if strings.Contains(string(body), "app-v") {
 		t.Fatalf("desktop should not mention a versioned binary: %s", body)
+	}
+}
+
+func TestReleaseAsset(t *testing.T) {
+	if got := ReleaseAsset(); got == "" {
+		t.Fatal("empty")
 	}
 }
 

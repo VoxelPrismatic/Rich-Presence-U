@@ -1,10 +1,8 @@
 package ui
 
-import "github.com/mappu/miqt/qt6"
-
-func breeze(kind, name string) string {
-	return "/usr/share/icons/breeze/" + kind + "/16/" + name + ".svg"
-}
+import (
+	"github.com/mappu/miqt/qt6"
+)
 
 func themeIcon(names ...string) *qt6.QIcon {
 	for _, name := range names {
@@ -24,68 +22,45 @@ func fileIcon(path string) *qt6.QIcon {
 	return qt6.NewQIcon()
 }
 
-func iconPublic() *qt6.QIcon {
-	ic := themeIcon("folder-public")
-	if ic.IsNull() {
-		return fileIcon(breeze("places", "folder-public"))
+func pickIcon(kind, name string, themeNames ...string) *qt6.QIcon {
+	if useSystemIcons() {
+		if ic := themeIcon(themeNames...); !ic.IsNull() {
+			return ic
+		}
 	}
-	return ic
+	return fileIcon(iconFile(kind, name))
+}
+
+func iconPublic() *qt6.QIcon {
+	return pickIcon("places", "folder-public", "folder-public")
 }
 
 func iconGames() *qt6.QIcon {
-	ic := themeIcon("folder-games")
-	if ic.IsNull() {
-		return fileIcon(breeze("places", "folder-games"))
-	}
-	return ic
+	return pickIcon("places", "folder-games", "folder-games")
 }
 
 func iconHelp() *qt6.QIcon {
-	ic := themeIcon("help-contextual", "help-hint")
-	if ic.IsNull() {
-		return fileIcon(breeze("actions", "help-contextual"))
-	}
-	return ic
+	return pickIcon("actions", "help-contextual", "help-contextual", "help-hint")
 }
 
 func iconNamed(themeName, breezeName string) *qt6.QIcon {
-	ic := themeIcon(themeName)
-	if ic.IsNull() {
-		return fileIcon(breeze("actions", breezeName))
-	}
-	return ic
+	return pickIcon("actions", breezeName, themeName)
 }
 
 func iconGoNext() *qt6.QIcon {
-	ic := themeIcon("go-next", "arrow-right")
-	if ic.IsNull() {
-		return fileIcon(breeze("actions", "go-next"))
-	}
-	return ic
+	return pickIcon("actions", "go-next", "go-next", "arrow-right")
 }
 
 func iconShop() *qt6.QIcon {
-	ic := themeIcon("amarok_cart_view", "amarok-cart-view")
-	if ic.IsNull() {
-		return fileIcon(breeze("actions", "amarok_cart_view"))
-	}
-	return ic
+	return pickIcon("actions", "amarok_cart_view", "amarok_cart_view", "amarok-cart-view")
 }
 
 func iconIGDB() *qt6.QIcon {
-	ic := themeIcon("compass")
-	if ic.IsNull() {
-		return fileIcon(breeze("actions", "compass"))
-	}
-	return ic
+	return pickIcon("actions", "compass", "compass")
 }
 
 func iconFind() *qt6.QIcon {
-	ic := themeIcon("edit-find")
-	if ic.IsNull() {
-		return fileIcon(breeze("actions", "edit-find"))
-	}
-	return ic
+	return pickIcon("actions", "edit-find", "edit-find")
 }
 
 func helpButton(tip string) *qt6.QToolButton {

@@ -161,7 +161,7 @@ func ApplyUpdateTo(ctx context.Context, configDir, appsDir, latest string) (stri
 		tag = "v" + tag
 	}
 	bin := LauncherPath(configDir)
-	url := githubBase + "/releases/download/" + tag + "/" + LauncherName
+	url := githubBase + "/releases/download/" + tag + "/" + ReleaseAsset()
 	if err := downloadToFile(ctx, url, bin, 0o755); err != nil {
 		return "", fmt.Errorf("binary: %w", err)
 	}
