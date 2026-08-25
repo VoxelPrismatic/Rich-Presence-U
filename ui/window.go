@@ -252,7 +252,7 @@ func (a *App) buildDetailsForm() *qt6.QWidget {
 	a.nnidRow = qt6.NewQWidget2()
 	nnGrid := newFormGrid(a.nnidRow)
 	a.nnid = qt6.NewQLineEdit2()
-	a.nnid.SetMaximumWidth(180)
+	a.nnid.SetMaximumWidth(220)
 	a.nnid.OnTextChanged(func(text string) {
 		if a.silent {
 			return
@@ -261,7 +261,7 @@ func (a *App) buildDetailsForm() *qt6.QWidget {
 		a.fillDescOptions()
 		a.updateApply()
 	})
-	addFormRow(nnGrid, 0, a.tr.T("TAG_TITLE_NNID"), a.nnid.QWidget, nil)
+	a.nnidLabel = addFormRow(nnGrid, 0, a.tr.T("TAG_TITLE_FCID"), a.nnid.QWidget, nil)
 	box.AddWidget(a.nnidRow)
 
 	toggles := qt6.NewQWidget2()
@@ -422,21 +422,27 @@ func (a *App) updateRegionItems() {
 	}
 }
 
+func (a *App) switchFriendCode() bool {
+	sys, ok := a.nsoSystem()
+	return ok && (sys == nso.HAC || sys == nso.BEE)
+}
+
+func (a *App) wiiuTag() bool {
+	p, ok := a.platform()
+	return ok && p.Slug == "WiiU"
+}
+
 func (a *App) friendCodeLabel() string {
 	if t := a.tag(); t != "" {
 		return t
 	}
-	sys, ok := a.nsoSystem()
-	if !ok {
-		sys = a.settings.System
-	}
-	switch sys {
-	case nso.WUP:
-		return a.tr.T("TAG_PLACEHOLDER_NNID")
-	case nso.HAC, nso.BEE:
+	switch {
+	case a.switchFriendCode():
 		return a.tr.T("TAG_PLACEHOLDER_SW")
+	case a.wiiuTag():
+		return a.tr.T("TAG_PLACEHOLDER_NNID")
 	default:
-		return a.tr.T("TAG_PLACEHOLDER_FC")
+		return a.tr.T("TAG_TITLE_FCID")
 	}
 }
 
@@ -498,15 +504,22 @@ func (a *App) reloadSystem() {
 	a.silent = true
 	a.refreshPlatformButton()
 	st := a.sys()
-	sys, _ := a.nsoSystem()
-	if !sys.Valid() {
-		sys = a.settings.System
+	sw := a.switchFriendCode()
+	a.fcRow.SetVisible(sw)
+	a.nnidRow.SetVisible(!sw)
+	a.fcPrefix.SetVisible(sw)
+	if a.nnidLabel != nil {
+		if a.wiiuTag() {
+			a.nnidLabel.SetText(a.tr.T("TAG_TITLE_NNID"))
+		} else {
+			a.nnidLabel.SetText(a.tr.T("TAG_TITLE_FCID"))
+		}
 	}
-	wiiu := sys == nso.WUP
-	a.nnidRow.SetVisible(wiiu)
-	a.fcRow.SetVisible(!wiiu)
-	a.fcPrefix.SetVisible(sys == nso.HAC || sys == nso.BEE)
-	a.nnid.SetText(st.TagID)
+	id := st.TagID
+	if strings.TrimSpace(id) == "" && !sw {
+		id = joinTagFC(st.TagFC)
+	}
+	a.nnid.SetText(id)
 	a.fcA.SetText(st.TagFC[0])
 	a.fcB.SetText(st.TagFC[1])
 	a.fcC.SetText(st.TagFC[2])
@@ -518,6 +531,17 @@ func (a *App) reloadSystem() {
 	a.updateInfoButton()
 	a.updateApply()
 	a.updateElapsed()
+}
+
+func joinTagFC(fc [3]string) string {
+	parts := make([]string, 0, 3)
+	for _, p := range fc {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			parts = append(parts, p)
+		}
+	}
+	return strings.Join(parts, "-")
 }
 
 func (a *App) refreshGameUI() {

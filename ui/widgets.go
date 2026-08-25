@@ -43,13 +43,13 @@ func newFormGrid(parent *qt6.QWidget) *qt6.QGridLayout {
 	return g
 }
 
-func addFormRow(g *qt6.QGridLayout, row int, title string, control *qt6.QWidget, help *qt6.QToolButton) {
+func addFormRow(g *qt6.QGridLayout, row int, title string, control *qt6.QWidget, help *qt6.QToolButton) *qt6.QLabel {
 	lab := qt6.NewQLabel3(title)
 	lab.SetAlignment(qt6.AlignRight | qt6.AlignVCenter)
 	g.AddWidget4(lab.QWidget, row, 0, qt6.AlignRight|qt6.AlignVCenter)
 	if help == nil {
 		g.AddWidget4(control, row, 1, qt6.AlignLeft|qt6.AlignVCenter)
-		return
+		return lab
 	}
 	wrap := qt6.NewQWidget2()
 	lay := qt6.NewQHBoxLayout(wrap)
@@ -59,6 +59,7 @@ func addFormRow(g *qt6.QGridLayout, row int, title string, control *qt6.QWidget,
 	lay.AddWidget(help.QWidget)
 	lay.AddStretch()
 	g.AddWidget2(wrap, row, 1)
+	return lab
 }
 
 func maskPixmap(src *qt6.QPixmap, size int, radius float64) *qt6.QPixmap {

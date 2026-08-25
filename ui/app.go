@@ -61,6 +61,7 @@ type App struct {
 	fcPrefix      *qt6.QLabel
 	fcA, fcB, fcC *qt6.QLineEdit
 	nnid          *qt6.QLineEdit
+	nnidLabel     *qt6.QLabel
 	fcRow         *qt6.QWidget
 	nnidRow       *qt6.QWidget
 	tagIcon       *qt6.QCheckBox
@@ -175,6 +176,10 @@ func (a *App) tag() string {
 	sys := a.settings.System
 	if nsoSys, ok := a.nsoSystem(); ok {
 		sys = nsoSys
+	} else if a.wiiuTag() {
+		sys = nso.WUP
+	} else {
+		sys = ""
 	}
 	log.Println("tag", sys, st.TagID, st.TagFC)
 	return discord.FormatTag(string(sys), st.TagID, st.TagFC)

@@ -86,7 +86,13 @@ func TestFormatTag(t *testing.T) {
 		t.Fatalf("switch %q", g)
 	}
 	if g := FormatTag("CTR", "", [3]string{"1234", "5678", "9012"}); g != "FC: 1234-5678-9012" {
-		t.Fatalf("3ds %q", g)
+		t.Fatalf("3ds fallback %q", g)
+	}
+	if g := FormatTag("CTR", "SW-12", [3]string{}); g != "SW-12" {
+		t.Fatalf("freeform 3ds %q", g)
+	}
+	if g := FormatTag("NES", "PSN-foo", [3]string{}); g != "PSN-foo" {
+		t.Fatalf("other console %q", g)
 	}
 	if g := FormatTag("BEE", "", [3]string{"12", "5678", "9012"}); g != "" {
 		t.Fatalf("short fc %q", g)
