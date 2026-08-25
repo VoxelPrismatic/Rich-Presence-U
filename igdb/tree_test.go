@@ -37,7 +37,7 @@ func TestShopNameAndPageURL(t *testing.T) {
 	if nes.ShopName() != "" {
 		t.Fatalf("NES should be IGDB, got %q", nes.ShopName())
 	}
-	if !strings.Contains(nes.PageURL(), "igdb.com") || !strings.Contains(nes.PageURL(), "Nintendo") {
+	if !strings.Contains(nes.PageURL(), "igdb.com/advanced_search") || !strings.Contains(nes.PageURL(), "f[platforms.id_in]=18") {
 		t.Fatalf("igdb url %q", nes.PageURL())
 	}
 }

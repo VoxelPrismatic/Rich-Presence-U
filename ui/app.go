@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/mappu/miqt/qt6"
@@ -19,6 +20,7 @@ type App struct {
 	tr       *i18n
 	log      logger
 	nso      *nso.Client
+	igdbAPI  *igdb.Client
 	rpc      *discord.Client
 	settings Settings
 	systems  map[string]*SystemState
@@ -76,6 +78,8 @@ type App struct {
 	autoConn   *qt6.QCheckBox
 	keepOn     *qt6.QCheckBox
 	debugOn    *qt6.QCheckBox
+	igdbID     *qt6.QLineEdit
+	igdbSecret *qt6.QLineEdit
 	dataCombo  *qt6.QComboBox
 	dataBtn    *qt6.QPushButton
 	aboutTable *qt6.QTableWidget
@@ -151,7 +155,7 @@ func (a *App) currentGame() (nso.Game, bool) {
 	if st.Game == "" {
 		return nso.Game{}, false
 	}
-	sys, ok := a.nsoSystem()
+	sys, ok := a.catalogSystem()
 	if !ok {
 		return nso.Game{}, false
 	}
@@ -204,13 +208,28 @@ func (a *App) presence() discord.Presence {
 	if game, ok := a.currentGame(); ok {
 		region := a.preferredRegion()
 		p.CoverKey = a.nso.CoverKey(game, region)
-		if u := game.Store(region); u != "" {
-			p.Buttons = []discord.Button{{Label: a.tr.T("ESHOP_BUTTON"), URL: u}}
-		}
 	} else {
 		p.CoverKey = "default"
 	}
+	if label, u := a.statusButton(); u != "" {
+		p.Buttons = []discord.Button{{Label: label, URL: u}}
+	}
 	return p
+}
+
+func (a *App) statusButton() (label, u string) {
+	if _, store := a.nsoSystem(); store {
+		if game, ok := a.currentGame(); ok {
+			if page := game.Store(a.preferredRegion()); page != "" {
+				return a.tr.T("ESHOP_BUTTON"), page
+			}
+		}
+		return "", ""
+	}
+	if strings.TrimSpace(a.title()) == "" {
+		return "", ""
+	}
+	return a.tr.T("SEARCH_BUTTON_TEXT"), a.gameInfoURL()
 }
 
 func (a *App) presenceForPush() discord.Presence {

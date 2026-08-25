@@ -139,6 +139,20 @@ func (c *Client) loadAllTitles() error {
 		}
 		next[sys] = cat
 	}
+	var slugs []string
+	if err := c.db.Model(&GormGame{}).Distinct("system").Pluck("system", &slugs).Error; err != nil {
+		return err
+	}
+	for _, slug := range slugs {
+		if _, ok := ParseSystem(slug); ok || slug == "" {
+			continue
+		}
+		cat, err := c.loadPlatform(slug)
+		if err != nil {
+			return err
+		}
+		next[System(slug)] = cat
+	}
 	c.mu.Lock()
 	c.catalogs = next
 	c.mu.Unlock()

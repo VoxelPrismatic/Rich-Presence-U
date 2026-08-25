@@ -1,9 +1,13 @@
 package ui
 
 import (
+	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/mappu/miqt/qt6"
+	"github.com/mappu/miqt/qt6/mainthread"
 	"github.com/voxelprismatic/richpresenceu/nso"
 	"github.com/voxelprismatic/richpresenceu/svc"
 )
@@ -84,6 +88,32 @@ func (a *App) buildSettings() *qt6.QWidget {
 		}
 	})
 	addFormRow(g, row, a.tr.T("DEBUG_TITLE"), a.debugOn.QWidget, helpButton(a.tr.T("DEBUG_HINT")))
+	row++
+
+	igdbWrap := qt6.NewQWidget2()
+	igdbLay := qt6.NewQVBoxLayout(igdbWrap)
+	igdbLay.SetContentsMargins(0, 0, 0, 0)
+	igdbLay.SetSpacing(4)
+	a.igdbID = qt6.NewQLineEdit2()
+	a.igdbID.SetPlaceholderText(a.tr.T("IGDB_CLIENT_ID"))
+	a.igdbID.OnEditingFinished(func() { a.saveIGDBCredentials() })
+	a.igdbSecret = qt6.NewQLineEdit2()
+	a.igdbSecret.SetPlaceholderText(a.tr.T("IGDB_CLIENT_SECRET"))
+	a.igdbSecret.SetEchoMode(qt6.QLineEdit__Password)
+	a.igdbSecret.OnEditingFinished(func() { a.saveIGDBCredentials() })
+	igdbBtns := qt6.NewQHBoxLayout2()
+	igdbBtns.SetContentsMargins(0, 0, 0, 0)
+	testBtn := qt6.NewQPushButton3(a.tr.T("IGDB_TEST"))
+	testBtn.OnClicked(func() { a.testIGDB() })
+	consoleBtn := qt6.NewQPushButton3(a.tr.T("IGDB_CONSOLE"))
+	consoleBtn.OnClicked(func() { openURL("https://dev.twitch.tv/console/apps") })
+	igdbBtns.AddWidget(testBtn.QWidget)
+	igdbBtns.AddWidget(consoleBtn.QWidget)
+	igdbBtns.AddStretch()
+	igdbLay.AddWidget(a.igdbID.QWidget)
+	igdbLay.AddWidget(a.igdbSecret.QWidget)
+	igdbLay.AddLayout(igdbBtns.QLayout)
+	addFormRow(g, row, a.tr.T("IGDB_TITLE"), igdbWrap, helpButton(a.tr.T("IGDB_HINT")))
 	row++
 
 	dataWrap := qt6.NewQWidget2()
@@ -186,5 +216,51 @@ func (a *App) loadSettingsIntoUI() {
 	a.autoConn.SetChecked(a.settings.AutoConnect)
 	a.keepOn.SetChecked(a.settings.KeepOn)
 	a.debugOn.SetChecked(a.settings.DebugLog)
+	if a.igdbID != nil {
+		a.igdbID.SetText(a.settings.IGDBClientID)
+	}
+	if a.igdbSecret != nil {
+		a.igdbSecret.SetText(a.settings.IGDBClientSecret)
+	}
 	a.silent = false
+}
+
+func (a *App) saveIGDBCredentials() {
+	if a.silent {
+		return
+	}
+	id, secret := "", ""
+	if a.igdbID != nil {
+		id = strings.TrimSpace(a.igdbID.Text())
+	}
+	if a.igdbSecret != nil {
+		secret = strings.TrimSpace(a.igdbSecret.Text())
+	}
+	a.settings.IGDBClientID = id
+	a.settings.IGDBClientSecret = secret
+	if a.igdbAPI != nil {
+		a.igdbAPI.SetCredentials(id, secret)
+	}
+	a.persist()
+}
+
+func (a *App) testIGDB() {
+	a.saveIGDBCredentials()
+	if a.igdbAPI == nil || !a.igdbAPI.Configured() {
+		qt6.QMessageBox_Warning(a.win.QWidget, a.tr.T("IGDB_TITLE"), popupText(a.tr.T("IGDB_TEST_FAIL")))
+		return
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+		defer cancel()
+		err := a.igdbAPI.Ping(ctx)
+		mainthread.Start(func() {
+			if err != nil {
+				a.debug("igdb ping: %v", err)
+				qt6.QMessageBox_Warning(a.win.QWidget, a.tr.T("IGDB_TITLE"), popupText(a.tr.T("IGDB_TEST_FAIL")))
+				return
+			}
+			qt6.QMessageBox_Information(a.win.QWidget, a.tr.T("IGDB_TITLE"), popupText(a.tr.T("IGDB_TEST_OK")))
+		})
+	}()
 }

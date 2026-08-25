@@ -7,6 +7,7 @@ import (
 
 	"github.com/mappu/miqt/qt6"
 	"github.com/mappu/miqt/qt6/mainthread"
+	"github.com/voxelprismatic/richpresenceu/igdb"
 	"github.com/voxelprismatic/richpresenceu/nso"
 )
 
@@ -49,7 +50,7 @@ func (a *App) setupGameSearch() {
 }
 
 func (a *App) refillGameCombo() {
-	sys, ok := a.nsoSystem()
+	sys, ok := a.catalogSystem()
 	if !ok {
 		a.setSearchHits(nil, false)
 		return
@@ -147,7 +148,7 @@ func (a *App) rememberAndSet(id string) {
 		}
 	}
 	if found {
-		if sys, ok := a.nsoSystem(); ok {
+		if sys, ok := a.catalogSystem(); ok {
 			_ = a.nso.Remember(sys, game)
 		}
 	}
@@ -157,19 +158,19 @@ func (a *App) rememberAndSet(id string) {
 	if !found {
 		return
 	}
-	sys, ok := a.nsoSystem()
-	if !ok {
-		return
-	}
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
 		defer cancel()
-		filled, err := a.nso.EnrichRegions(ctx, game, sys)
-		if err != nil {
-			a.debug("enrich regions: %v", err)
-			return
+		filled := game
+		if sys, ok := a.nsoSystem(); ok {
+			next, err := a.nso.EnrichRegions(ctx, game, sys)
+			if err != nil {
+				a.debug("enrich regions: %v", err)
+			} else {
+				filled = next
+				_ = a.nso.Remember(sys, filled)
+			}
 		}
-		_ = a.nso.Remember(sys, filled)
 		a.nso.CacheCovers(ctx, filled)
 		mainthread.Start(func() {
 			if a.sys().Game != id {
@@ -222,14 +223,17 @@ func (a *App) scheduleGameSearch() {
 
 func (a *App) runStoreSearch() {
 	text := strings.TrimSpace(a.game.CurrentText())
-	sys, store := a.nsoSystem()
+	sys, ok := a.catalogSystem()
+	_, store := a.nsoSystem()
+	igdbOn := a.igdbAPI != nil && a.igdbAPI.Configured() && !store
 	region := a.settings.Region
 	display := a.preferredRegion()
 	var catalog []nso.Game
-	if store {
+	if ok {
 		catalog = a.nso.Games(sys)
 	}
-	if len([]rune(text)) < 2 || !store {
+	remote := store || igdbOn
+	if len([]rune(text)) < 2 || !remote {
 		local := nso.Search(catalog, text, display)
 		games := make([]nso.Game, 0, len(local))
 		for _, h := range local {
@@ -238,17 +242,29 @@ func (a *App) runStoreSearch() {
 		if text == "" {
 			games = catalog
 		}
-		a.setSearchHits(games, text != "" && store)
+		a.setSearchHits(games, text != "" && remote)
 		return
 	}
 	gen := a.searchGen
+	plat, _ := a.platform()
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 		defer cancel()
-		extra, err := a.nso.SearchStore(ctx, text, sys, region)
-		if err != nil {
-			a.debug("eshop search: %v", err)
-			extra = nil
+		var extra []nso.Game
+		var err error
+		if store {
+			extra, err = a.nso.SearchStore(ctx, text, sys, region)
+			if err != nil {
+				a.debug("eshop search: %v", err)
+				extra = nil
+			}
+		} else {
+			hits, serr := a.igdbAPI.SearchGames(ctx, text, plat)
+			if serr != nil {
+				a.debug("igdb search: %v", serr)
+			} else {
+				extra = igdbHitsToGames(hits)
+			}
 		}
 		mainthread.Start(func() {
 			if gen != a.searchGen || strings.TrimSpace(a.game.CurrentText()) != text {
@@ -258,6 +274,32 @@ func (a *App) runStoreSearch() {
 			a.setSearchHits(nso.MergeGames(local, extra, 0), true)
 		})
 	}()
+}
+
+func igdbHitsToGames(hits []igdb.GameHit) []nso.Game {
+	out := make([]nso.Game, 0, len(hits))
+	for _, h := range hits {
+		if h.CatalogID() == "" || h.Name == "" {
+			continue
+		}
+		g := nso.Game{
+			ID:       h.CatalogID(),
+			Titles:   map[nso.Region]string{nso.US: h.Name},
+			Icons:    map[nso.Region]bool{},
+			Covers:   map[nso.Region]string{},
+			Stores:   map[nso.Region]string{},
+			CoverArt: h.CoverURL,
+		}
+		if h.CoverURL != "" {
+			g.Covers[nso.US] = h.CoverURL
+			g.Icons[nso.US] = true
+		}
+		if h.URL != "" {
+			g.Stores[nso.US] = h.URL
+		}
+		out = append(out, g)
+	}
+	return out
 }
 
 func (a *App) gameSearchOpen() bool {

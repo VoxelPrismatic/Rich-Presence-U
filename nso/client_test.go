@@ -162,3 +162,32 @@ func TestPurgeLegacyCatalog(t *testing.T) {
 		t.Fatal("csv slug still in catalog")
 	}
 }
+
+func TestRememberIGDB(t *testing.T) {
+	c, err := New(t.TempDir(), t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = c.Close() })
+	g := Game{
+		ID:       IGDBPrefix + "1026",
+		Titles:   map[Region]string{US: "The Legend of Zelda"},
+		Covers:   map[Region]string{US: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1.jpg"},
+		CoverArt: "https://images.igdb.com/igdb/image/upload/t_cover_big/co1.jpg",
+		Stores:   map[Region]string{US: "https://www.igdb.com/games/the-legend-of-zelda"},
+		Icons:    map[Region]bool{US: true},
+	}
+	if err := c.Remember(System("NES"), g); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.LoadCache(); err != nil {
+		t.Fatal(err)
+	}
+	got, ok := c.Lookup(System("NES"), g.ID)
+	if !ok || got.Title(US) != "The Legend of Zelda" {
+		t.Fatalf("igdb lookup %v %+v", ok, got)
+	}
+	if len(c.Games(HAC)) != 0 {
+		t.Fatalf("should not land in HAC: %+v", c.Games(HAC))
+	}
+}

@@ -7,6 +7,7 @@ import (
 	"github.com/mappu/miqt/qt6"
 	"github.com/mappu/miqt/qt6/mainthread"
 	"github.com/voxelprismatic/richpresenceu/discord"
+	"github.com/voxelprismatic/richpresenceu/igdb"
 	"github.com/voxelprismatic/richpresenceu/nso"
 	"github.com/voxelprismatic/richpresenceu/svc"
 )
@@ -27,9 +28,13 @@ func Main() {
 	}
 
 	settings, systems := loadPrefs(client.ConfigDir)
+	igdbc := igdb.NewClient()
+	igdbc.UserAgent = svc.UserAgent()
+	igdbc.SetCredentials(settings.IGDBClientID, settings.IGDBClientSecret)
 	a := &App{
 		tr:           newI18n(),
 		nso:          client,
+		igdbAPI:      igdbc,
 		rpc:          discord.New(),
 		settings:     settings,
 		systems:      systems,

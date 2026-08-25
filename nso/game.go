@@ -36,6 +36,14 @@ func (g Game) FromSwitch() bool {
 	return strings.HasPrefix(g.ID, HACPrefix)
 }
 
+// IGDBPrefix marks titles remembered from the IGDB games search.
+const IGDBPrefix = "igdb:"
+
+// IsIGDBID reports whether id was stored from an IGDB search hit.
+func IsIGDBID(id string) bool {
+	return strings.HasPrefix(id, IGDBPrefix)
+}
+
 // IsStoreID reports whether id looks like an eShop nsuid / Europe fs_id,
 // as opposed to a slug from the old Rich Presence U CSV dump.
 func IsStoreID(id string) bool {

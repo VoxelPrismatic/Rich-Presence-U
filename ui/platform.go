@@ -2,7 +2,6 @@ package ui
 
 import (
 	"fmt"
-	"net/url"
 	"strings"
 
 	"github.com/mappu/miqt/qt6"
@@ -527,6 +526,42 @@ func (a *App) nsoSystem() (nso.System, bool) {
 	return "", false
 }
 
+// catalogSystem is the games.db key for the selected console: eShop system
+// for Switch, otherwise the IGDB platform slug.
+func (a *App) catalogSystem() (nso.System, bool) {
+	if sys, ok := a.nsoSystem(); ok {
+		return sys, true
+	}
+	key := a.sysKey()
+	if key == "" {
+		return "", false
+	}
+	return nso.System(key), true
+}
+
+func (a *App) gameInfoURL() string {
+	if _, store := a.nsoSystem(); store {
+		if game, ok := a.currentGame(); ok {
+			return game.Store(a.preferredRegion())
+		}
+		return ""
+	}
+	if game, ok := a.currentGame(); ok {
+		if u := game.Store(a.preferredRegion()); u != "" {
+			return u
+		}
+	}
+	p, ok := a.platform()
+	if !ok {
+		return ""
+	}
+	title := strings.TrimSpace(a.title())
+	if title == p.DisplayName() {
+		title = ""
+	}
+	return igdb.GameSearchURL(title, p.ID)
+}
+
 func (a *App) discordSystem() nso.System {
 	if sys, ok := a.nsoSystem(); ok {
 		return sys
@@ -555,33 +590,11 @@ func (a *App) updateInfoButton() {
 	}
 	a.infoBtn.SetIcon(iconIGDB())
 	a.infoBtn.SetToolTip(a.tr.T("OPEN_IGDB_PAGE"))
-	_, ok := a.platform()
-	a.infoBtn.SetEnabled(ok)
+	a.infoBtn.SetEnabled(a.gameInfoURL() != "")
 }
 
 func (a *App) openGameInfo() {
-	if _, store := a.nsoSystem(); store {
-		game, ok := a.currentGame()
-		if !ok {
-			return
-		}
-		u := game.Store(a.preferredRegion())
-		if u == "" {
-			return
-		}
-		openURL(u)
-		return
-	}
-	p, ok := a.platform()
-	if !ok {
-		return
-	}
-	title := strings.TrimSpace(a.title())
-	if title != "" && title != p.DisplayName() {
-		openURL("https://www.igdb.com/search?q=" + url.QueryEscape(title))
-		return
-	}
-	openURL(p.PageURL())
+	openURL(a.gameInfoURL())
 }
 
 func openURL(u string) {

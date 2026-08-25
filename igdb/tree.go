@@ -1,7 +1,6 @@
 package igdb
 
 import (
-	"net/url"
 	"sort"
 	"strings"
 )
@@ -59,9 +58,9 @@ func (p Platform) ShopName() string {
 	}
 }
 
-// PageURL is the IGDB website page for this console.
+// PageURL is the public IGDB games search for this console.
 func (p Platform) PageURL() string {
-	return "https://www.igdb.com/search?q=" + url.QueryEscape(p.DisplayName())
+	return GameSearchURL("", p.ID)
 }
 
 // BySlug looks up a mapped console by its short slug (eg "NS1", "NES").

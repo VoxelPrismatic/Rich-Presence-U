@@ -466,7 +466,7 @@ func (a *App) fillDescOptions() {
 func (a *App) onGameTyped(text string) {
 	prev := a.sys().Game
 	pool := append([]nso.Game{}, a.searchHits...)
-	if sys, ok := a.nsoSystem(); ok {
+	if sys, ok := a.catalogSystem(); ok {
 		pool = append(pool, a.nso.Games(sys)...)
 	}
 	g, ok := nso.Resolve(pool, text, a.settings.Region)

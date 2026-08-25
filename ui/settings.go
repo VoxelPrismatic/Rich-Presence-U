@@ -14,23 +14,25 @@ import (
 )
 
 type Settings struct {
-	System          nso.System `json:"system"`
-	Platform        string     `json:"platform,omitempty"`
-	Language        string     `json:"language"`
-	Refresh         int        `json:"refresh"`
-	RefreshLast     int64      `json:"refresh_last"`
-	AutoConnect     bool       `json:"auto_connect"`
-	KeepOn          bool       `json:"keep_on"`
-	DebugLog        bool       `json:"debug_log"`
-	Activity        bool       `json:"activity"`
-	Timer           int        `json:"timer"`
-	Region          nso.Region `json:"region"`
-	WindowW         int        `json:"window_w"`
-	WindowH         int        `json:"window_h"`
-	WindowX         int        `json:"window_x"`
-	WindowY         int        `json:"window_y"`
-	InstallDeclined string     `json:"install_declined,omitempty"`
-	UpdateDeclined  string     `json:"update_declined,omitempty"`
+	System           nso.System `json:"system"`
+	Platform         string     `json:"platform,omitempty"`
+	Language         string     `json:"language"`
+	Refresh          int        `json:"refresh"`
+	RefreshLast      int64      `json:"refresh_last"`
+	AutoConnect      bool       `json:"auto_connect"`
+	KeepOn           bool       `json:"keep_on"`
+	DebugLog         bool       `json:"debug_log"`
+	Activity         bool       `json:"activity"`
+	Timer            int        `json:"timer"`
+	Region           nso.Region `json:"region"`
+	WindowW          int        `json:"window_w"`
+	WindowH          int        `json:"window_h"`
+	WindowX          int        `json:"window_x"`
+	WindowY          int        `json:"window_y"`
+	InstallDeclined  string     `json:"install_declined,omitempty"`
+	UpdateDeclined   string     `json:"update_declined,omitempty"`
+	IGDBClientID     string     `json:"igdb_client_id,omitempty"`
+	IGDBClientSecret string     `json:"igdb_client_secret,omitempty"`
 }
 
 type GameState struct {

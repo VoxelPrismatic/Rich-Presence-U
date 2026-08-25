@@ -16,7 +16,7 @@ import (
 type GormGame struct {
 	gorm.Model
 	CatalogID     string `gorm:"uniqueIndex:idx_game_sys_cat;size:128"`
-	System        string `gorm:"uniqueIndex:idx_game_sys_cat;size:8"`
+	System        string `gorm:"uniqueIndex:idx_game_sys_cat;size:32"`
 	AssetSystem   string `gorm:"size:8"`
 	TitleAmericas string `gorm:"column:title_americas"`
 	TitleEurope   string `gorm:"column:title_europe"`
@@ -143,7 +143,7 @@ func (c *Client) purgeLegacyCatalog() error {
 	}
 	ids := make([]uint, 0)
 	for _, row := range rows {
-		if IsStoreID(row.CatalogID) {
+		if IsStoreID(row.CatalogID) || IsIGDBID(row.CatalogID) {
 			continue
 		}
 		ids = append(ids, row.ID)
@@ -152,6 +152,21 @@ func (c *Client) purgeLegacyCatalog() error {
 		return nil
 	}
 	return c.db.Unscoped().Where("id IN ?", ids).Delete(&GormGame{}).Error
+}
+
+func (c *Client) loadPlatform(slug string) (*Catalog, error) {
+	cat := newCatalog()
+	var rows []GormGame
+	if err := c.db.Where("system = ?", slug).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		if !IsIGDBID(row.CatalogID) {
+			continue
+		}
+		cat.add(row.Game())
+	}
+	return cat, nil
 }
 
 func (c *Client) loadSystem(system System) (*Catalog, error) {
