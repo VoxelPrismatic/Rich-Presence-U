@@ -43,24 +43,30 @@ A simple application that allows you to create your own activity statuses for al
 
 # Install
 
-- If you use KDE:
-  1. Download the binary, [`app`][app.bin]
-  2. Open it, and press "Install"
-- If you use another Linux desktop:
-  1. Install Qt and Breeze icons
-  2. Download the binary, [`app`][app.bin]
-  3. Open it, and press "Install"
-- Everyone else, however: (warning, untested on mac and windows)
-  1. [Download][zip] the repository or clone it via command line:
-     `git clone https://github.com/voxelprismatic/Rich-Presence-U.git`
-  2. (extract the zip if necessary)
-  3. Download [Golang][golang] and [Qt][qt]
-  4. Open a terminal or command prompt
-  5. Navigate to the folder with the code
-     - You'll see `main.go`
-  6. Run `go build -o app main.go`
-     - This will take lots of time
-  7. Double-click the `app` binary
+| OS      | Linked                                     | Portable                                                  |
+| ------- | ------------------------------------------ | --------------------------------------------------------- |
+| Linux   | [rich-presence-qt_linux][linux_shared]     | [rich-presence-qt_linux_(portable)][linux_portable]       |
+| Windows | [rich-presence-qt_windows.exe][win_shared] | [rich-presence-qt_windows_(portable).zip][win_portable]   |
+| macOS   | [rich-presence-qt_macOS.app][mac_shared]   | [rich-presence-qt_macOS_(portable).app.zip][mac_portable] |
+
+> [!WARNING]
+>
+> 1. Builds for macOS and Windows are completely untested.
+> 2. For Linked builds, ensure that you have [Qt][qt] installed, and the Breeze Icon Pack to be safe.
+
+<details>
+    <summary>Build manually</summary>
+
+1. `git clone https://github.com/voxelprismatic/Rich-Presence-U.git`
+2. Download [Golang][golang] and [Qt][qt]
+3. Open a terminal or command prompt
+4. Navigate to the folder with the code
+   - You'll see `main.go`
+5. Run `go build -o app main.go`
+   - This will take lots of time
+6. Double-click the binary called `app`
+
+</details>
 
 # Credits
 
@@ -84,4 +90,9 @@ A simple application that allows you to create your own activity statuses for al
 [locale_template]: https://github.com/ninstar/Rich-Presence-U/tree/main/source/locales/english.csv
 [rcedit]: https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe
 [golang]: https://go.dev/
-[app.bin]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_linux
+[linux_shared]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_linux
+[linux_portable]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_linux_(portable)
+[win_shared]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_windows.exe
+[win_portable]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_windows_(portable).zip
+[mac_shared]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_macOS.app
+[mac_portable]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_macOS_(portable).app.zip
