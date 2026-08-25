@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
+	"log"
 	"time"
 
 	"github.com/mappu/miqt/qt6"
@@ -34,7 +35,7 @@ type App struct {
 	cover         *qt6.QLabel
 	system        *qt6.QComboBox
 	platModel     *platformModel
-	platPopup     *qt6.QFrame
+	platPopup     *qt6.QWidget
 	platList      *qt6.QListView
 	platBack      *qt6.QToolButton
 	platCrumb     *qt6.QLabel
@@ -45,6 +46,7 @@ type App struct {
 	platHasSaved  bool
 	game          *qt6.QComboBox
 	region        *qt6.QComboBox
+	infoBtn       *qt6.QPushButton
 	desc          *qt6.QComboBox
 	partyOn       *qt6.QCheckBox
 	partyBox      *qt6.QWidget
@@ -170,6 +172,7 @@ func (a *App) tag() string {
 	if nsoSys, ok := a.nsoSystem(); ok {
 		sys = nsoSys
 	}
+	log.Println("tag", sys, st.TagID, st.TagFC)
 	return discord.FormatTag(string(sys), st.TagID, st.TagFC)
 }
 
@@ -178,6 +181,7 @@ func (a *App) presence() discord.Presence {
 	st := a.sys()
 	p := discord.Presence{
 		Title:     a.title(),
+		Console:   a.platformDisplay(),
 		ShowTag:   true,
 		TagIcon:   st.TagIcon,
 		Tag:       a.tag(),

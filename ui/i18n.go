@@ -55,6 +55,8 @@ var fallback = map[string]string{
 	"UPDATE_HINT":       "Version %s is available. Download and install it now?",
 	"UPDATE_AVAILABLE":  "Version %s is available.\nhttps://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest",
 	"ESHOP_BUTTON":      "Buy on eShop",
+	"OPEN_SHOP_PAGE":    "Open %s Page",
+	"OPEN_IGDB_PAGE":    "Open IGDB Page",
 }
 
 type i18n struct {

@@ -11,7 +11,7 @@ import (
 
 const DefaultMetadataURL = "https://gist.github.com/ninstar/19c664a823d3a0312f47f5ac5e52a915/raw"
 
-const DefaultClientID = "985449859299565649"
+const DefaultClientID = "1541918291843489862"
 
 const (
 	defaultWUPClient = "1259966953573847130"

@@ -1,11 +1,21 @@
 package ui
 
 import (
+	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/mappu/miqt/qt6"
 	"github.com/voxelprismatic/richpresenceu/igdb"
 	"github.com/voxelprismatic/richpresenceu/nso"
+)
+
+const (
+	chevron          = "  ›  "
+	platShadowPad    = 16
+	platRowPad       = 5
+	platArrowSlot    = 22
+	platCornerRadius = 4
 )
 
 func (a *App) setupPlatformSelector() {
@@ -28,28 +38,67 @@ func (a *App) setupPlatformSelector() {
 }
 
 func (a *App) buildPlatPopup() {
-	pop := qt6.NewQFrame3(a.win.QWidget, qt6.Popup)
-	pop.SetFrameShape(qt6.QFrame__StyledPanel)
-	pop.SetFrameShadow(qt6.QFrame__Raised)
-	box := qt6.NewQVBoxLayout(pop.QWidget)
+	pop := qt6.NewQWidget3(a.win.QWidget, qt6.Popup|qt6.FramelessWindowHint)
+	pop.SetAttribute(qt6.WA_TranslucentBackground)
+	outer := qt6.NewQVBoxLayout(pop)
+	outer.SetContentsMargins(platShadowPad, platShadowPad, platShadowPad, platShadowPad)
+	outer.SetSpacing(0)
+
+	wrap := qt6.NewQWidget2()
+	shadow := qt6.NewQGraphicsDropShadowEffect2(wrap.QObject)
+	shadow.SetBlurRadius(24)
+	shadow.SetOffset2(0, 4)
+	shadow.SetColor(qt6.NewQColor11(0, 0, 0, 100))
+	wrap.SetGraphicsEffect(shadow.QGraphicsEffect)
+	outer.AddWidget(wrap)
+
+	inner := qt6.NewQFrame2()
+	inner.SetObjectName(*qt6.NewQAnyStringView3("platPanel"))
+	inner.SetFrameShape(qt6.QFrame__NoFrame)
+	inner.SetAutoFillBackground(true)
+	inner.SetAttribute(qt6.WA_StyledBackground)
+	inner.SetStyleSheet(fmt.Sprintf(
+		"#platPanel { background-color: palette(window); border: 1px solid palette(mid); border-radius: %dpx; }",
+		platCornerRadius,
+	))
+	wl := qt6.NewQVBoxLayout(wrap)
+	wl.SetContentsMargins(0, 0, 0, 0)
+	wl.AddWidget(inner.QWidget)
+
+	box := qt6.NewQVBoxLayout(inner.QWidget)
 	box.SetContentsMargins(4, 4, 4, 4)
-	box.SetSpacing(2)
+	box.SetSpacing(0)
+
+	header := qt6.NewQWidget2()
+	header.SetObjectName(*qt6.NewQAnyStringView3("platHeader"))
+	header.SetAutoFillBackground(true)
+	header.SetStyleSheet("#platHeader { background-color: palette(window); border: none; }")
+	hBox := qt6.NewQVBoxLayout(header)
+	hBox.SetContentsMargins(0, 0, 0, 4)
+	hBox.SetSpacing(4)
 
 	head := qt6.NewQHBoxLayout2()
 	head.SetContentsMargins(0, 0, 0, 0)
 	back := qt6.NewQToolButton2()
 	back.SetIcon(iconNamed("go-previous", "go-previous"))
 	back.SetAutoRaise(true)
+	back.SetToolButtonStyle(qt6.ToolButtonIconOnly)
+	back.SetStyleSheet("QToolButton { border: none; background: transparent; }")
 	back.SetToolTip(a.tr.T("SETTINGS_BACK"))
 	back.OnClicked(func() { a.platGoBack() })
 	crumb := qt6.NewQLabel2()
+	crumb.SetFrameShape(qt6.QFrame__NoFrame)
 	head.AddWidget(back.QWidget)
 	head.AddWidget2(crumb.QWidget, 1)
-	box.AddLayout(head.QLayout)
+	hBox.AddLayout(head.QLayout)
 
-	search := qt6.NewQLineEdit(pop.QWidget)
+	search := qt6.NewQLineEdit(header)
 	search.SetPlaceholderText(a.tr.T("PLATFORM_SEARCH"))
 	search.SetClearButtonEnabled(true)
+	search.AddAction2(iconFind(), qt6.QLineEdit__LeadingPosition)
+	sp := search.Palette()
+	sp.SetColor2(qt6.QPalette__Base, sp.ColorWithCr(qt6.QPalette__Base))
+	search.SetPalette(sp)
 	search.OnTextChanged(func(text string) { a.filterPlatSearch(text) })
 	search.OnReturnPressed(func() { a.activatePlatCurrent() })
 	search.OnKeyPressEvent(func(super func(param1 *qt6.QKeyEvent), param1 *qt6.QKeyEvent) {
@@ -75,15 +124,21 @@ func (a *App) buildPlatPopup() {
 		}
 		super(param1)
 	})
-	box.AddWidget(search.QWidget)
+	hBox.AddWidget(search.QWidget)
+	box.AddWidget(header)
 
-	list := qt6.NewQListView(pop.QWidget)
+	list := qt6.NewQListView(inner.QWidget)
 	list.SetModel(a.platModel.QAbstractItemModel)
 	list.SetEditTriggers(qt6.QAbstractItemView__NoEditTriggers)
 	list.SetSelectionMode(qt6.QAbstractItemView__SingleSelection)
 	list.SetUniformItemSizes(true)
 	list.SetHorizontalScrollBarPolicy(qt6.ScrollBarAlwaysOff)
 	list.SetFocusPolicy(qt6.StrongFocus)
+	list.SetFrameShape(qt6.QFrame__NoFrame)
+	list.SetIconSize(qt6.NewQSize2(16, 16))
+	list.SetAutoFillBackground(true)
+	list.SetStyleSheet("QListView, QListView::viewport { background-color: palette(base); border: none; } QListView::item { padding: 4px 5px; }")
+	list.SetItemDelegate(newPlatRowDelegate(list.QObject).QAbstractItemDelegate)
 	list.OnClicked(func(index *qt6.QModelIndex) { a.onPlatIndex(index) })
 	list.OnActivated(func(index *qt6.QModelIndex) { a.onPlatIndex(index) })
 	list.OnKeyPressEvent(func(super func(event *qt6.QKeyEvent), event *qt6.QKeyEvent) {
@@ -123,6 +178,70 @@ func (a *App) buildPlatPopup() {
 	a.platHits = qt6.NewQStandardItemModel3(pop.QObject)
 }
 
+func newPlatRowDelegate(parent *qt6.QObject) *qt6.QStyledItemDelegate {
+	arrow := iconGoNext()
+	d := qt6.NewQStyledItemDelegate2(parent)
+	d.OnPaint(func(super func(painter *qt6.QPainter, option *qt6.QStyleOptionViewItem, index *qt6.QModelIndex), painter *qt6.QPainter, option *qt6.QStyleOptionViewItem, index *qt6.QModelIndex) {
+		orig := option.Rect()
+		if platRowReserveArrow(index) && orig != nil {
+			clipped := orig.Adjusted(0, 0, -platArrowSlot, 0)
+			option.SetRect(*clipped)
+			super(painter, option, index)
+			if platRowHasArrow(index) {
+				pix := arrow.Pixmap2(16, 16)
+				x := orig.Right() - 18
+				y := orig.Center().Y() - 8
+				painter.DrawPixmap9(x, y, pix)
+			}
+			return
+		}
+		super(painter, option, index)
+	})
+	d.OnSizeHint(func(super func(option *qt6.QStyleOptionViewItem, index *qt6.QModelIndex) *qt6.QSize, option *qt6.QStyleOptionViewItem, index *qt6.QModelIndex) *qt6.QSize {
+		sz := super(option, index)
+		if sz == nil {
+			return qt6.NewQSize2(0, 24+platRowPad)
+		}
+		sz.SetHeight(sz.Height() + platRowPad)
+		if platRowReserveArrow(index) {
+			sz.SetWidth(sz.Width() + platArrowSlot)
+		}
+		return sz
+	})
+	return d
+}
+
+func platRowHasArrow(index *qt6.QModelIndex) bool {
+	if index == nil || !index.IsValid() {
+		return false
+	}
+	m := index.Model()
+	return m != nil && m.HasChildren(index)
+}
+
+// platRowReserveArrow keeps a trailing slot on mixed pages (folders + leaves)
+// so the highlight bar does not change width between rows.
+func platRowReserveArrow(index *qt6.QModelIndex) bool {
+	if platRowHasArrow(index) {
+		return true
+	}
+	if index == nil || !index.IsValid() {
+		return false
+	}
+	m := index.Model()
+	if m == nil {
+		return false
+	}
+	parent := m.Parent(index)
+	n := m.RowCount(parent)
+	for i := 0; i < n; i++ {
+		if m.HasChildren(m.Index(i, 0, parent)) {
+			return true
+		}
+	}
+	return false
+}
+
 func (a *App) showPlatPopup() {
 	if a.platPopup == nil || a.system == nil {
 		return
@@ -133,8 +252,6 @@ func (a *App) showPlatPopup() {
 	}
 	a.showPlatTree()
 	a.sizePlatPopup()
-	g := a.system.MapToGlobalWithQPoint(qt6.NewQPoint2(0, a.system.Height()))
-	a.platPopup.MoveWithQPoint(g)
 	a.platPopup.Show()
 	if a.platSearch != nil {
 		a.platSearch.SetFocus()
@@ -203,7 +320,7 @@ func (a *App) updatePlatHeader() {
 		a.platBack.SetEnabled(true)
 		q := ""
 		if a.platSearch != nil {
-			q = strings.TrimSpace(a.platSearch.Text())
+			q = strings.TrimSpace("Results")
 		}
 		if q == "" {
 			q = a.tr.T("PLATFORM_SEARCH")
@@ -218,7 +335,7 @@ func (a *App) updatePlatHeader() {
 		a.platCrumb.SetText(a.tr.T("GAME_SYSTEM"))
 		return
 	}
-	a.platCrumb.SetText(strings.Join(parts, "  ›  "))
+	a.platCrumb.SetText(strings.Join(parts, chevron))
 }
 
 func (a *App) sizePlatPopup() {
@@ -238,24 +355,23 @@ func (a *App) sizePlatPopup() {
 		rows = 12
 	}
 	rowH := a.platList.SizeHintForRow(0)
-	if rowH <= 0 {
-		rowH = 24
+	if rowH < 22 {
+		rowH = 24 + platRowPad
 	}
-	head := 8
+	head := 16
 	if a.platBack != nil {
 		head += a.platBack.SizeHint().Height()
 	}
 	if a.platSearch != nil {
-		head += a.platSearch.SizeHint().Height() + 6
+		head += a.platSearch.SizeHint().Height()
 	}
-	w := a.system.Width()
-	if w < 240 {
-		w = 240
-	}
-	a.platList.SetMinimumHeight(rowH * rows)
-	a.platPopup.SetFixedWidth(w)
-	a.platPopup.AdjustSize()
-	a.platPopup.Resize(w, head+rowH*rows+12)
+	w := max(240, a.system.Width())
+	listH := rowH * rows
+	a.platList.SetFixedHeight(listH)
+	innerH := head + listH + 4
+	a.platPopup.SetFixedSize2(w+platShadowPad*2, innerH+platShadowPad*2)
+	g := a.system.MapToGlobalWithQPoint(qt6.NewQPoint2(0, a.system.Height()))
+	a.platPopup.Move(g.X()-platShadowPad, g.Y()-platShadowPad)
 }
 
 func (a *App) onPlatIndex(index *qt6.QModelIndex) {
@@ -422,4 +538,66 @@ func (a *App) discordSystem() nso.System {
 		return sys
 	}
 	return a.settings.System
+}
+
+func (a *App) updateInfoButton() {
+	if a.infoBtn == nil {
+		return
+	}
+	_, store := a.nsoSystem()
+	if a.region != nil {
+		a.region.SetVisible(store)
+	}
+	if store {
+		a.infoBtn.SetIcon(iconShop())
+		shop := "eShop"
+		if p, ok := a.platform(); ok {
+			if name := p.ShopName(); name != "" {
+				shop = name
+			}
+		}
+		a.infoBtn.SetToolTip(fmt.Sprintf(a.tr.T("OPEN_SHOP_PAGE"), shop))
+		u := ""
+		if game, ok := a.currentGame(); ok {
+			u = game.Store(a.preferredRegion())
+		}
+		a.infoBtn.SetEnabled(u != "")
+		return
+	}
+	a.infoBtn.SetIcon(iconIGDB())
+	a.infoBtn.SetToolTip(a.tr.T("OPEN_IGDB_PAGE"))
+	_, ok := a.platform()
+	a.infoBtn.SetEnabled(ok)
+}
+
+func (a *App) openGameInfo() {
+	if _, store := a.nsoSystem(); store {
+		game, ok := a.currentGame()
+		if !ok {
+			return
+		}
+		u := game.Store(a.preferredRegion())
+		if u == "" {
+			return
+		}
+		openURL(u)
+		return
+	}
+	p, ok := a.platform()
+	if !ok {
+		return
+	}
+	title := strings.TrimSpace(a.title())
+	if title != "" && title != p.DisplayName() {
+		openURL("https://www.igdb.com/search?q=" + url.QueryEscape(title))
+		return
+	}
+	openURL(p.PageURL())
+}
+
+func openURL(u string) {
+	if strings.TrimSpace(u) == "" {
+		return
+	}
+	qt6.QDesktopServices_OpenUrl(qt6.NewQUrl3(u))
 }

@@ -28,6 +28,14 @@ func TestBuildDescriptionAndTag(t *testing.T) {
 	}
 
 	a = Build(Presence{
+		Title:   "Splatoon 3",
+		Console: "Nintendo Switch",
+	})
+	if a.Details != "Splatoon 3" || a.State != "Nintendo Switch" || a.LargeText != "Nintendo Switch" {
+		t.Fatalf("game above console %+v", a)
+	}
+
+	a = Build(Presence{
 		Title:       "Game",
 		Description: "In a party",
 		Tag:         "FC: 0000-0000-0000",

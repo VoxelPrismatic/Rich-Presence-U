@@ -13,6 +13,7 @@ const (
 	fzfGapPenalty  = 3.0
 	fzfGapLength   = 1.0
 	fzfExactBonus  = 50.0
+	chevron        = "  ›  "
 )
 
 // Hit is one platform picker search result, labeled as "Parent > Child".
@@ -28,7 +29,7 @@ func (h Hit) Label() string {
 	if h.Parent == "" {
 		return h.Child
 	}
-	return h.Parent + " > " + h.Child
+	return h.Parent + chevron + h.Child
 }
 
 // Search finds mapped consoles. The query is lowercased and split on spaces;
@@ -42,11 +43,10 @@ func Search(query string) []Hit {
 	var hits []Hit
 	for maker, families := range MappedPlatforms {
 		for fam, plats := range families {
-			parent, childName := searchNames(maker, fam, plats)
 			for _, p := range plats {
-				child := childName
-				if child == "" {
-					child = p.Slug
+				parent := fam
+				if len(plats) == 1 {
+					parent = maker
 				}
 				hay := searchHaystack(maker, fam, p)
 				score, ok := matchTerms(hay, terms)
@@ -56,7 +56,7 @@ func Search(query string) []Hit {
 				hits = append(hits, Hit{
 					Platform: p,
 					Parent:   parent,
-					Child:    child,
+					Child:    p.DisplayName(),
 					Score:    score,
 				})
 			}
@@ -70,13 +70,6 @@ func Search(query string) []Hit {
 		return hits[i].Label() < hits[j].Label()
 	})
 	return hits
-}
-
-func searchNames(maker, fam string, plats []Platform) (parent, child string) {
-	if len(plats) == 1 {
-		return maker, fam
-	}
-	return fam, ""
 }
 
 func searchHaystack(maker, fam string, p Platform) string {

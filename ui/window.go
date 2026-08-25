@@ -72,13 +72,6 @@ func (a *App) buildPresence() *qt6.QWidget {
 	col := qt6.NewQVBoxLayout2()
 	col.SetSpacing(8)
 
-	sysRow := qt6.NewQHBoxLayout2()
-	a.system = qt6.NewQComboBox2()
-	setBigFont(a.system.QWidget, 2)
-	a.setupPlatformSelector()
-	sysRow.AddWidget(a.system.QWidget)
-	col.AddLayout(sysRow.QLayout)
-
 	gameRow := qt6.NewQHBoxLayout2()
 	a.game = qt6.NewQComboBox2()
 	a.game.SetEditable(true)
@@ -111,9 +104,19 @@ func (a *App) buildPresence() *qt6.QWidget {
 		a.refreshGameUI()
 		a.updateApply()
 	})
+	a.infoBtn = qt6.NewQPushButton2()
+	a.infoBtn.SetCursor(qt6.NewQCursor2(qt6.PointingHandCursor))
+	a.infoBtn.OnClicked(func() { a.openGameInfo() })
 	gameRow.AddWidget2(a.game.QWidget, 1)
 	gameRow.AddWidget(a.region.QWidget)
+	gameRow.AddWidget(a.infoBtn.QWidget)
 	col.AddLayout(gameRow.QLayout)
+
+	sysRow := qt6.NewQHBoxLayout2()
+	a.system = qt6.NewQComboBox2()
+	a.setupPlatformSelector()
+	sysRow.AddWidget(a.system.QWidget)
+	col.AddLayout(sysRow.QLayout)
 
 	descRow := qt6.NewQHBoxLayout2()
 	pub := qt6.NewQLabel2()
@@ -512,6 +515,7 @@ func (a *App) reloadSystem() {
 	a.silent = false
 	a.refillGameCombo()
 	a.refreshGameUI()
+	a.updateInfoButton()
 	a.updateApply()
 	a.updateElapsed()
 }
@@ -535,4 +539,5 @@ func (a *App) refreshGameUI() {
 	a.partyMax.SetValue(g.PartyMax)
 	a.silent = false
 	a.loadCover()
+	a.updateInfoButton()
 }

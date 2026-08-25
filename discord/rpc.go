@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
 	"sync"
@@ -280,6 +281,7 @@ func (c *Client) Close() {
 
 func (c *Client) write(op uint32, body map[string]any) error {
 	raw, err := json.Marshal(body)
+	log.Println("write", op, body)
 	if err != nil {
 		return err
 	}
@@ -353,6 +355,7 @@ func (c *Client) pingLoop() {
 }
 
 func (c *Client) dispatch(f frame) {
+	log.Println("dispatch", f.Op, string(f.Raw))
 	switch f.Op {
 	case opClose:
 		c.fail(errors.New("discord: ipc closed"))

@@ -122,11 +122,7 @@ func (m *platformModel) data(index *qt6.QModelIndex, role int) *qt6.QVariant {
 	if role != int(qt6.DisplayRole) {
 		return qt6.NewQVariant()
 	}
-	label := n.label
-	if len(n.children) > 0 {
-		label += "  ›"
-	}
-	return qt6.NewQVariant11(label)
+	return qt6.NewQVariant11(n.label)
 }
 
 func (m *platformModel) flags(_ func(*qt6.QModelIndex) qt6.ItemFlag, index *qt6.QModelIndex) qt6.ItemFlag {

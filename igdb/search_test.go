@@ -17,9 +17,9 @@ func TestSearchLabels(t *testing.T) {
 	}{
 		{"gamecube", "GCN", "Nintendo > GameCube"},
 		{"GAME CUBE", "GCN", "Nintendo > GameCube"},
-		{"amiga", "Amiga", "Commodore > Amiga"},
-		{"64dd", "64DD", "Nintendo 64 > 64DD"},
-		{"ns2", "NS2", "Switch > NS2"},
+		{"amiga", "Amiga", "Commodore > Commodore Amiga"},
+		{"64dd", "64DD", "Nintendo 64 > N64 DD"},
+		{"ns2", "NS2", "Switch > Nintendo Switch 2"},
 	}
 	for _, tc := range cases {
 		hits := Search(tc.q)

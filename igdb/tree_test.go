@@ -1,6 +1,9 @@
 package igdb
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestDisplayName(t *testing.T) {
 	cases := []struct {
@@ -22,6 +25,20 @@ func TestDisplayName(t *testing.T) {
 		if got := p.DisplayName(); got != tc.want {
 			t.Errorf("%s DisplayName = %q, want %q", tc.slug, got, tc.want)
 		}
+	}
+}
+
+func TestShopNameAndPageURL(t *testing.T) {
+	ns1, _ := BySlug("NS1")
+	nes, _ := BySlug("NES")
+	if ns1.ShopName() != "eShop" {
+		t.Fatalf("switch shop %q", ns1.ShopName())
+	}
+	if nes.ShopName() != "" {
+		t.Fatalf("NES should be IGDB, got %q", nes.ShopName())
+	}
+	if !strings.Contains(nes.PageURL(), "igdb.com") || !strings.Contains(nes.PageURL(), "Nintendo") {
+		t.Fatalf("igdb url %q", nes.PageURL())
 	}
 }
 

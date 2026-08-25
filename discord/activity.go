@@ -1,6 +1,9 @@
 package discord
 
-import "strings"
+import (
+	"log"
+	"strings"
+)
 
 // Activity is a Discord SET_ACTIVITY payload.
 type Activity struct {
@@ -26,6 +29,7 @@ type Button struct {
 // Presence is the app-level view of what should show on Discord.
 type Presence struct {
 	Title       string
+	Console     string
 	Description string
 	Tag         string
 	ShowTag     bool
@@ -40,7 +44,7 @@ type Presence struct {
 }
 
 func pad2(s string) string {
-	s = strings.TrimRight(s, " ")
+	s = strings.TrimSpace(s)
 	if s == "" {
 		return ""
 	}
@@ -58,9 +62,15 @@ func blank(s string) bool {
 // original Godot app did (without the dropped "minimal status" layout).
 func Build(p Presence) Activity {
 	title := pad2(p.Title)
+
 	desc := ""
 	if !blank(p.Description) {
 		desc = pad2(p.Description)
+	}
+
+	largeText := strings.TrimSpace(p.Title)
+	if largeText == "" {
+		largeText = "Rich Presence Qt"
 	}
 
 	a := Activity{
@@ -69,7 +79,7 @@ func Build(p Presence) Activity {
 		StartTimestamp: p.Start,
 		EndTimestamp:   p.End,
 		LargeImage:     p.CoverKey,
-		LargeText:      "Rich Presence Qt",
+		LargeText:      largeText,
 		Buttons:        p.Buttons,
 	}
 	if a.LargeImage == "" {
@@ -84,23 +94,18 @@ func Build(p Presence) Activity {
 			a.State = p.Tag
 		}
 	}
+	if a.State == "" && !blank(p.Title) && !blank(p.Console) {
+		a.State = pad2(p.Console)
+	}
 
 	if p.Party {
 		if a.State == "" {
 			a.State = "  "
 		}
-		a.PartySize = p.PartySize
-		a.PartyMax = p.PartyMax
-		if a.PartyMax < 1 {
-			a.PartyMax = 1
-		}
-		if a.PartySize < 1 {
-			a.PartySize = 1
-		}
-		if a.PartySize > a.PartyMax {
-			a.PartySize = a.PartyMax
-		}
+		a.PartyMax = max(p.PartyMax, 1)
+		a.PartySize = min(a.PartyMax, max(p.PartySize, 1))
 	}
+	log.Printf("Build: %+v", a)
 	return a
 }
 

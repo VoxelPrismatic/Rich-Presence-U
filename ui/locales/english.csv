@@ -21,6 +21,8 @@ DESCRIPTION_HINT_RECENT,Recent descriptions
 DESCRIPTION_TITLE,Description
 ELAPSED_TIME_TITLE,Display elapsed time
 ESHOP_BUTTON,Buy on eShop
+OPEN_SHOP_PAGE,Open %s Page
+OPEN_IGDB_PAGE,Open IGDB Page
 GAME_HINT_CUSTOM,Custom entry. The typed text will be used as a title in your status.
 GAME_HINT_NONE,You have not selected a game. Only your console name will be displayed.
 GAME_HINT_RECENT,Recent games
