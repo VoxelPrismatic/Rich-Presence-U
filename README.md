@@ -45,7 +45,7 @@ A simple application that allows you to create your own activity statuses for al
 
 | OS      | Linked                                     | Portable                                                  |
 | ------- | ------------------------------------------ | --------------------------------------------------------- |
-| Linux   | [rich-presence-qt_linux][linux_shared]     | [rich-presence-qt_linux_(portable)][linux_portable]       |
+| Linux   | [rich-presence-qt_linux][linux_shared]     | [rich-presence-qt_linux_(portable).AppImage][linux_portable] |
 | Windows | [rich-presence-qt_windows.exe][win_shared] | [rich-presence-qt_windows_(portable).zip][win_portable]   |
 | macOS   | [rich-presence-qt_macOS.app][mac_shared]   | [rich-presence-qt_macOS_(portable).app.zip][mac_portable] |
 
@@ -91,7 +91,7 @@ A simple application that allows you to create your own activity statuses for al
 [rcedit]: https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe
 [golang]: https://go.dev/
 [linux_shared]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_linux
-[linux_portable]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_linux_(portable)
+[linux_portable]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_linux_(portable).AppImage
 [win_shared]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_windows.exe
 [win_portable]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_windows_(portable).zip
 [mac_shared]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_macOS.app

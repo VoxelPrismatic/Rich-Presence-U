@@ -93,7 +93,7 @@ jobs:
 
       - name: Package portable (Linux)
         if: runner.os == 'Linux'
-        run: bash .github/scripts/pack-linux-portable.sh rpqt-portable 'rich-presence-qt_linux_(portable)'
+        run: bash .github/scripts/pack-linux-portable.sh rpqt-portable 'rich-presence-qt_linux_(portable).AppImage'
 
       - name: Package portable (macOS)
         if: runner.os == 'macOS'
@@ -109,7 +109,7 @@ jobs:
         if: runner.os == 'Linux'
         with:
           name: rich-presence-qt_linux_(portable)
-          path: rich-presence-qt_linux_(portable)
+          path: rich-presence-qt_linux_(portable).AppImage
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v4
@@ -184,10 +184,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.version.outputs.tag }}
         run: |
-          chmod +x dist/rich-presence-qt_linux dist/rich-presence-qt_macOS.app "dist/rich-presence-qt_linux_(portable)" || true
+          chmod +x dist/rich-presence-qt_linux dist/rich-presence-qt_macOS.app "dist/rich-presence-qt_linux_(portable).AppImage" || true
           NOTES="Pre-release ${TAG} from ${GITHUB_SHA}."$'\n\n'
           NOTES+="- \`rich-presence-qt_linux\` — Linux x86_64"$'\n'
-          NOTES+="- \`rich-presence-qt_linux_(portable)\` — Linux x86_64 AppImage (bundled Qt)"$'\n'
+          NOTES+="- \`rich-presence-qt_linux_(portable).AppImage\` — Linux x86_64 (bundled Qt)"$'\n'
           NOTES+="- \`rich-presence-qt_macOS.app\` — macOS (Apple Silicon)"$'\n'
           NOTES+="- \`rich-presence-qt_macOS_(portable).app.zip\` — macOS app bundle (bundled Qt)"$'\n'
           NOTES+="- \`rich-presence-qt_windows.exe\` — Windows x86_64"$'\n'
@@ -197,7 +197,7 @@ jobs:
             --title "$TAG" \
             --notes "$NOTES" \
             dist/rich-presence-qt_linux \
-            "dist/rich-presence-qt_linux_(portable)" \
+            "dist/rich-presence-qt_linux_(portable).AppImage" \
             dist/rich-presence-qt_macOS.app \
             "dist/rich-presence-qt_macOS_(portable).app.zip" \
             dist/rich-presence-qt_windows.exe \
