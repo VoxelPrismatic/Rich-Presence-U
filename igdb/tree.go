@@ -116,37 +116,66 @@ func SlugForStoreCode(code string) string {
 	}
 }
 
+var topPriority = []string{
+	"Nintendo",
+	"PlayStation",
+	"Xbox",
+	"PC",
+	"Home Computer",
+	"Retro",
+	"Arcade",
+	"Virtual Reality",
+	"Phone/Mobile",
+	"Mini Computer",
+}
+
+func familyPriority(maker string) []string {
+	switch maker {
+	case "Nintendo":
+		return []string{"Switch"}
+	case "PlayStation":
+		return []string{"Home", "Portable", "VR"}
+	case "PC":
+		return []string{"Windows", "macOS", "Linux", "Legacy"}
+	case "Retro":
+		return []string{"Atari", "Sega"}
+	case "Mini Computer":
+		return []string{"PDP"}
+	case "Arcade":
+		return []string{"Arcade", "Neo Geo"}
+	default:
+		return nil
+	}
+}
+
 // PickerTree builds the manufacturer → family → console tree used by the
 // platform selector. Families that only contain one console are collapsed so
-// the console is selected directly from the manufacturer page.
+// the console is selected directly from the manufacturer page, except Mini
+// Computer brands which always keep the extra grouping level. A manufacturer
+// with a single family (Xbox) skips that redundant family row.
 func PickerTree() []Node {
-	makers := make([]string, 0, len(MappedPlatforms))
-	for name := range MappedPlatforms {
-		makers = append(makers, name)
-	}
-	sort.Slice(makers, func(i, j int) bool {
-		if makers[i] == "Nintendo" {
-			return true
-		}
-		if makers[j] == "Nintendo" {
-			return false
-		}
-		return makers[i] < makers[j]
-	})
+	makers := mapKeys(MappedPlatforms)
+	sortByPriority(makers, topPriority)
 
 	out := make([]Node, 0, len(makers))
 	for _, maker := range makers {
 		families := MappedPlatforms[maker]
-		famNames := make([]string, 0, len(families))
-		for name := range families {
-			famNames = append(famNames, name)
-		}
-		sortFamilyNames(maker, famNames)
+		famNames := mapKeys(families)
+		sortByPriority(famNames, familyPriority(maker))
 
 		node := Node{Label: maker}
+		if len(famNames) == 1 {
+			for _, p := range families[famNames[0]] {
+				node.Children = append(node.Children, Node{Label: p.DisplayName(), Platform: p})
+			}
+			out = append(out, node)
+			continue
+		}
+
+		keepFamily := maker == "Mini Computer"
 		for _, fam := range famNames {
 			plats := families[fam]
-			if len(plats) == 1 {
+			if !keepFamily && len(plats) == 1 {
 				p := plats[0]
 				node.Children = append(node.Children, Node{Label: p.DisplayName(), Platform: p})
 				continue
@@ -162,17 +191,31 @@ func PickerTree() []Node {
 	return out
 }
 
-func sortFamilyNames(maker string, names []string) {
-	sort.Strings(names)
-	if maker != "Nintendo" {
-		return
+func mapKeys[V any](m map[string]V) []string {
+	keys := make([]string, 0, len(m))
+	for name := range m {
+		keys = append(keys, name)
 	}
-	for i, n := range names {
-		if n != "Switch" {
-			continue
+	return keys
+}
+
+func sortByPriority(names, priority []string) {
+	rank := make(map[string]int, len(priority))
+	for i, n := range priority {
+		rank[n] = i
+	}
+	sort.SliceStable(names, func(i, j int) bool {
+		ri, okI := rank[names[i]]
+		rj, okJ := rank[names[j]]
+		switch {
+		case okI && okJ:
+			return ri < rj
+		case okI:
+			return true
+		case okJ:
+			return false
+		default:
+			return names[i] < names[j]
 		}
-		copy(names[1:i+1], names[:i])
-		names[0] = "Switch"
-		return
-	}
+	})
 }

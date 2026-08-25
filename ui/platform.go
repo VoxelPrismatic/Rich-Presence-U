@@ -84,7 +84,7 @@ func (a *App) buildPlatPopup() {
 	back.SetAutoRaise(true)
 	back.SetToolButtonStyle(qt6.ToolButtonIconOnly)
 	back.SetFocusPolicy(qt6.StrongFocus)
-	back.SetStyleSheet("QToolButton { border: 1px solid transparent; background: transparent; border-radius: 4px; } QToolButton:focus { border: 1px solid palette(highlight); }")
+	back.SetStyleSheet("QToolButton { border: 1px solid transparent; background: transparent; border-radius: 4px; } QToolButton:hover:enabled { border: 1px solid palette(highlight); } QToolButton:pressed:enabled { border: 1px solid palette(highlight); background: palette(highlight); }")
 	back.SetToolTip(a.tr.T("SETTINGS_BACK"))
 	back.OnClicked(func() { a.platGoBack() })
 	crumb := qt6.NewQLabel2()

@@ -59,6 +59,21 @@ func TestSearchEmpty(t *testing.T) {
 	}
 }
 
+func TestSearchDedupesDuplicates(t *testing.T) {
+	for _, q := range []string{"psvr", "playstation vr", "ps vr"} {
+		hits := Search(q)
+		n := 0
+		for _, h := range hits {
+			if h.Platform.ID == 165 || h.Platform.Slug == "PSVR" {
+				n++
+			}
+		}
+		if n != 1 {
+			t.Errorf("%q: PSVR should appear once, got %d in %v", q, n, labels(hits))
+		}
+	}
+}
+
 func labels(hits []Hit) []string {
 	out := make([]string, len(hits))
 	for i, h := range hits {

@@ -63,6 +63,7 @@ func Search(query string) []Hit {
 		}
 	}
 
+	hits = dedupeHits(hits)
 	sort.SliceStable(hits, func(i, j int) bool {
 		if hits[i].Score != hits[j].Score {
 			return hits[i].Score > hits[j].Score
@@ -70,6 +71,38 @@ func Search(query string) []Hit {
 		return hits[i].Label() < hits[j].Label()
 	})
 	return hits
+}
+
+// dedupeHits keeps one result per platform ID (or slug if ID is unset).
+// The higher-scoring placement wins so a query like "virtual reality"
+// prefers the VR tree copy of PSVR over the PlayStation copy.
+func dedupeHits(hits []Hit) []Hit {
+	type key struct {
+		id   PlatformID
+		slug string
+	}
+	best := make(map[key]Hit, len(hits))
+	order := make([]key, 0, len(hits))
+	for _, h := range hits {
+		k := key{id: h.Platform.ID}
+		if k.id == 0 {
+			k.slug = h.Platform.Slug
+		}
+		prev, ok := best[k]
+		if !ok {
+			best[k] = h
+			order = append(order, k)
+			continue
+		}
+		if h.Score > prev.Score || (h.Score == prev.Score && h.Label() < prev.Label()) {
+			best[k] = h
+		}
+	}
+	out := make([]Hit, 0, len(order))
+	for _, k := range order {
+		out = append(out, best[k])
+	}
+	return out
 }
 
 func searchHaystack(maker, fam string, p Platform) string {
