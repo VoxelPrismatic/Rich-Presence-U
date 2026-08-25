@@ -78,6 +78,8 @@ jobs:
           echo "PKG_CONFIG_PATH=${QT_PREFIX}/lib/pkgconfig" >> "$GITHUB_ENV"
           echo "LDFLAGS=-L${QT_PREFIX}/lib" >> "$GITHUB_ENV"
           echo "CPPFLAGS=-I${QT_PREFIX}/include" >> "$GITHUB_ENV"
+          echo "CXXFLAGS=-std=c++17" >> "$GITHUB_ENV"
+          echo "CGO_CXXFLAGS=-std=c++17" >> "$GITHUB_ENV"
 
       - name: Build
         env:
