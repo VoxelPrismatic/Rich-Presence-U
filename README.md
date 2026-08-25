@@ -2,15 +2,17 @@
 
 # Overview
 
-A simple application that allows you to create your own activity statuses for Nintendo Switch and
-Nintendo Switch 2 gamers and display them on your Discord profile.
+A simple application that allows you to create your own activity statuses for all gamers and display them on your Discord profile.
 
 <img src="./.github/activity_status.png" alt="Activity status" width="100%">
 
 ## Features
 
+- Integrates with IGDB
+  - Most consoles and games are listed here
 - Search directly from the eShop
   - No manual mirrors with missing titles
+  - Only for Nintendo Switch and Switch 2
 - Buy from eShop button
 - Simple, intuitive Qt UI (no Godot)
 - Simplified install (compared to NinStar's repo)
@@ -22,9 +24,14 @@ Nintendo Switch 2 gamers and display them on your Discord profile.
 
 <img src="./.github/user_interface.png" alt="User interface" width="100%">
 
-> [!Note]
-> Automatic activity setup is NOT supported at the moment. Partial or full support may be
-> added in a future major release, implementation will vary from platform to platform.
+> [!WARNING]
+> Automatic game detection is not supported on any console. Previous efforts
+> to integrate with online services like NSO have been quashed several years ago,
+> and any efforts to do so now will likely result in your online account being
+> terminated.
+>
+> This only refers to the console's online services, not Discord. Discord actually
+> encourages programs like this so they can build their game database.
 
 <p align="center">You can support NinStar's work by purchasing this application:</p>
 <p align="center">
@@ -59,6 +66,9 @@ Nintendo Switch 2 gamers and display them on your Discord profile.
 
 - **Original Codebase/Idea** - NinStar
 - **Rewrite** - VoxelPrismatic
+- **Databases**
+  - Twitch/IGDB
+  - Nintendo eShop
 
 # Third-party code
 

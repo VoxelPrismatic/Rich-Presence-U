@@ -74,24 +74,8 @@ func (a *App) buildPresence() *qt6.QWidget {
 
 	sysRow := qt6.NewQHBoxLayout2()
 	a.system = qt6.NewQComboBox2()
-	a.system.SetToolTip(a.tr.T("GAME_SYSTEM"))
 	setBigFont(a.system.QWidget, 2)
-	for _, sys := range nso.Systems {
-		a.system.AddItem3(sys.DisplayName(), qt6.NewQVariant11(string(sys)))
-	}
-	a.system.OnCurrentIndexChanged(func(index int) {
-		if a.silent {
-			return
-		}
-		id := a.system.ItemData(index).ToString()
-		sys, ok := nso.ParseSystem(id)
-		if !ok || sys == a.settings.System {
-			return
-		}
-		a.settings.System = sys
-		a.bumpElapsed(true)
-		a.reloadSystem()
-	})
+	a.setupPlatformSelector()
 	sysRow.AddWidget(a.system.QWidget)
 	col.AddLayout(sysRow.QLayout)
 
@@ -439,7 +423,11 @@ func (a *App) friendCodeLabel() string {
 	if t := a.tag(); t != "" {
 		return t
 	}
-	switch a.settings.System {
+	sys, ok := a.nsoSystem()
+	if !ok {
+		sys = a.settings.System
+	}
+	switch sys {
 	case nso.WUP:
 		return "ID: —"
 	case nso.HAC, nso.BEE:
@@ -474,7 +462,10 @@ func (a *App) fillDescOptions() {
 
 func (a *App) onGameTyped(text string) {
 	prev := a.sys().Game
-	pool := append(append([]nso.Game{}, a.searchHits...), a.nso.Games(a.settings.System)...)
+	pool := append([]nso.Game{}, a.searchHits...)
+	if sys, ok := a.nsoSystem(); ok {
+		pool = append(pool, a.nso.Games(sys)...)
+	}
 	g, ok := nso.Resolve(pool, text, a.settings.Region)
 	id := text
 	if ok {
@@ -502,12 +493,16 @@ func (a *App) setGameID(id string) {
 
 func (a *App) reloadSystem() {
 	a.silent = true
-	a.selectComboData(a.system, string(a.settings.System))
+	a.refreshPlatformButton()
 	st := a.sys()
-	wiiu := a.settings.System == nso.WUP
+	sys, _ := a.nsoSystem()
+	if !sys.Valid() {
+		sys = a.settings.System
+	}
+	wiiu := sys == nso.WUP
 	a.nnidRow.SetVisible(wiiu)
 	a.fcRow.SetVisible(!wiiu)
-	a.fcPrefix.SetVisible(a.settings.System == nso.HAC || a.settings.System == nso.BEE)
+	a.fcPrefix.SetVisible(sys == nso.HAC || sys == nso.BEE)
 	a.nnid.SetText(st.TagID)
 	a.fcA.SetText(st.TagFC[0])
 	a.fcB.SetText(st.TagFC[1])

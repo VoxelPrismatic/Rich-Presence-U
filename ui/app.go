@@ -10,6 +10,7 @@ import (
 	"github.com/mappu/miqt/qt6"
 	"github.com/mappu/miqt/qt6/mainthread"
 	"github.com/voxelprismatic/richpresenceu/discord"
+	"github.com/voxelprismatic/richpresenceu/igdb"
 	"github.com/voxelprismatic/richpresenceu/nso"
 )
 
@@ -19,7 +20,7 @@ type App struct {
 	nso      *nso.Client
 	rpc      *discord.Client
 	settings Settings
-	systems  map[nso.System]*SystemState
+	systems  map[string]*SystemState
 	start    int64
 	applied  string
 	built    *discord.Activity
@@ -32,6 +33,16 @@ type App struct {
 	stack         *qt6.QStackedWidget
 	cover         *qt6.QLabel
 	system        *qt6.QComboBox
+	platModel     *platformModel
+	platPopup     *qt6.QFrame
+	platList      *qt6.QListView
+	platBack      *qt6.QToolButton
+	platCrumb     *qt6.QLabel
+	platSearch    *qt6.QLineEdit
+	platHits      *qt6.QStandardItemModel
+	platSearching bool
+	platSavedRoot uintptr
+	platHasSaved  bool
 	game          *qt6.QComboBox
 	region        *qt6.QComboBox
 	desc          *qt6.QComboBox
@@ -76,12 +87,23 @@ type App struct {
 	gameHighlight string
 }
 
+func (a *App) sysKey() string {
+	if a.settings.Platform != "" {
+		return a.settings.Platform
+	}
+	if slug := igdb.SlugForStoreCode(string(a.settings.System)); slug != "" {
+		return slug
+	}
+	return "NS1"
+}
+
 func (a *App) sys() *SystemState {
-	st := a.systems[a.settings.System]
+	key := a.sysKey()
+	st := a.systems[key]
 	if st == nil {
 		d := defaultSystem()
 		st = &d
-		a.systems[a.settings.System] = st
+		a.systems[key] = st
 	}
 	return st
 }
@@ -127,7 +149,11 @@ func (a *App) currentGame() (nso.Game, bool) {
 	if st.Game == "" {
 		return nso.Game{}, false
 	}
-	return a.nso.Lookup(a.settings.System, st.Game)
+	sys, ok := a.nsoSystem()
+	if !ok {
+		return nso.Game{}, false
+	}
+	return a.nso.Lookup(sys, st.Game)
 }
 
 func (a *App) title() string {
@@ -140,7 +166,11 @@ func (a *App) title() string {
 
 func (a *App) tag() string {
 	st := a.sys()
-	return discord.FormatTag(string(a.settings.System), st.TagID, st.TagFC)
+	sys := a.settings.System
+	if nsoSys, ok := a.nsoSystem(); ok {
+		sys = nsoSys
+	}
+	return discord.FormatTag(string(sys), st.TagID, st.TagFC)
 }
 
 func (a *App) presence() discord.Presence {
@@ -194,7 +224,7 @@ func (a *App) presenceForPush() discord.Presence {
 func (a *App) fingerprint() string {
 	p := a.presence()
 	st := a.sys()
-	raw, _ := json.Marshal([]any{a.settings.System, st.Game, a.preferredRegion(), p, st.TagFC, st.TagID, st.TagIcon, a.gameState()})
+	raw, _ := json.Marshal([]any{a.settings.Platform, a.settings.System, st.Game, a.preferredRegion(), p, st.TagFC, st.TagID, st.TagIcon, a.gameState()})
 	sum := sha1.Sum(raw)
 	return hex.EncodeToString(sum[:])
 }

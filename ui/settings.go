@@ -9,11 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/voxelprismatic/richpresenceu/igdb"
 	"github.com/voxelprismatic/richpresenceu/nso"
 )
 
 type Settings struct {
 	System          nso.System `json:"system"`
+	Platform        string     `json:"platform,omitempty"`
 	Language        string     `json:"language"`
 	Refresh         int        `json:"refresh"`
 	RefreshLast     int64      `json:"refresh_last"`
@@ -58,6 +60,7 @@ type prefsFile struct {
 func defaultSettings() Settings {
 	return Settings{
 		System:   nso.HAC,
+		Platform: "NS1",
 		Refresh:  604800,
 		KeepOn:   true,
 		DebugLog: true,
@@ -80,13 +83,16 @@ func prefsPath(dir string) string {
 	return filepath.Join(dir, "prefs.json")
 }
 
-func loadPrefs(dir string) (Settings, map[nso.System]*SystemState) {
-	s := defaultSettings()
-	systems := map[nso.System]*SystemState{}
-	for _, sys := range nso.Systems {
-		st := defaultSystem()
-		systems[sys] = &st
+func platformKey(key string) string {
+	if slug := igdb.SlugForStoreCode(key); slug != "" {
+		return slug
 	}
+	return strings.TrimSpace(key)
+}
+
+func loadPrefs(dir string) (Settings, map[string]*SystemState) {
+	s := defaultSettings()
+	systems := map[string]*SystemState{}
 
 	b, err := os.ReadFile(prefsPath(dir))
 	if err != nil {
@@ -100,27 +106,27 @@ func loadPrefs(dir string) (Settings, map[nso.System]*SystemState) {
 	}
 	s = pf.Settings
 	for key, st := range pf.Platforms {
-		sys, ok := nso.ParseSystem(key)
-		if !ok {
+		slug := platformKey(key)
+		if slug == "" {
 			continue
 		}
 		if st.Library == nil {
 			st.Library = map[string]GameState{}
 		}
 		copy := st
-		systems[sys] = &copy
+		systems[slug] = &copy
 	}
 	return normalizeSettings(s), systems
 }
 
-func savePrefs(dir string, s Settings, systems map[nso.System]*SystemState) error {
+func savePrefs(dir string, s Settings, systems map[string]*SystemState) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
 	pf := prefsFile{Settings: s, Platforms: map[string]SystemState{}}
-	for sys, st := range systems {
-		if st != nil {
-			pf.Platforms[string(sys)] = *st
+	for slug, st := range systems {
+		if st != nil && slug != "" {
+			pf.Platforms[slug] = *st
 		}
 	}
 	b, err := json.MarshalIndent(pf, "", "  ")
@@ -131,7 +137,20 @@ func savePrefs(dir string, s Settings, systems map[nso.System]*SystemState) erro
 }
 
 func normalizeSettings(s Settings) Settings {
-	if !s.System.Valid() || s.System == nso.CTR || s.System == nso.WUP {
+	if s.Platform == "" {
+		if !s.System.Valid() || s.System == nso.CTR || s.System == nso.WUP {
+			s.System = nso.HAC
+		}
+		s.Platform = igdb.SlugForStoreCode(string(s.System))
+	}
+	if p, ok := igdb.BySlug(s.Platform); ok {
+		if sys, ok := nso.ParseSystem(p.StoreCode()); ok {
+			s.System = sys
+		} else {
+			s.System = ""
+		}
+	} else {
+		s.Platform = "NS1"
 		s.System = nso.HAC
 	}
 	if !s.Region.Valid() {
@@ -151,7 +170,7 @@ func legacyDataDir() string {
 	return filepath.Join(home, ".local", "share", "rich_presence_u")
 }
 
-func migrateLegacyPlatforms(dir string, systems map[nso.System]*SystemState) {
+func migrateLegacyPlatforms(dir string, systems map[string]*SystemState) {
 	if dir == "" {
 		return
 	}
@@ -202,7 +221,7 @@ func migrateLegacyPlatforms(dir string, systems map[nso.System]*SystemState) {
 			}
 		}
 		copy := st
-		systems[sys] = &copy
+		systems[platformKey(string(sys))] = &copy
 	}
 }
 

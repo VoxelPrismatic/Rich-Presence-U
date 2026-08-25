@@ -92,7 +92,7 @@ func (a *App) onApply() {
 func (a *App) connect(andPush bool) {
 	a.busy = true
 	a.updateApply()
-	id := a.nso.Meta.ClientID(a.settings.System)
+	id := a.nso.Meta.ClientID(a.discordSystem())
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 		defer cancel()
@@ -123,7 +123,7 @@ func (a *App) pushStatus() {
 	a.bumpElapsed(false)
 	act := discord.Build(a.presenceForPush())
 	a.built = &act
-	id := a.nso.Meta.ClientID(a.settings.System)
+	id := a.nso.Meta.ClientID(a.discordSystem())
 	needSwitch := a.rpc.Connected() && a.rpc.ClientID() != id
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)

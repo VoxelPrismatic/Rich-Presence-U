@@ -49,7 +49,12 @@ func (a *App) setupGameSearch() {
 }
 
 func (a *App) refillGameCombo() {
-	a.setSearchHits(a.nso.Games(a.settings.System), false)
+	sys, ok := a.nsoSystem()
+	if !ok {
+		a.setSearchHits(nil, false)
+		return
+	}
+	a.setSearchHits(a.nso.Games(sys), false)
 }
 
 func (a *App) comboCaret() (text string, cursor, selStart, selLen int, focused, popup bool) {
@@ -142,7 +147,9 @@ func (a *App) rememberAndSet(id string) {
 		}
 	}
 	if found {
-		_ = a.nso.Remember(a.settings.System, game)
+		if sys, ok := a.nsoSystem(); ok {
+			_ = a.nso.Remember(sys, game)
+		}
 	}
 	a.silent = true
 	a.setGameID(id)
@@ -150,7 +157,10 @@ func (a *App) rememberAndSet(id string) {
 	if !found {
 		return
 	}
-	sys := a.settings.System
+	sys, ok := a.nsoSystem()
+	if !ok {
+		return
+	}
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
 		defer cancel()
@@ -212,19 +222,23 @@ func (a *App) scheduleGameSearch() {
 
 func (a *App) runStoreSearch() {
 	text := strings.TrimSpace(a.game.CurrentText())
-	sys := a.settings.System
+	sys, store := a.nsoSystem()
 	region := a.settings.Region
 	display := a.preferredRegion()
-	if len([]rune(text)) < 2 {
-		local := nso.Search(a.nso.Games(sys), text, display)
+	var catalog []nso.Game
+	if store {
+		catalog = a.nso.Games(sys)
+	}
+	if len([]rune(text)) < 2 || !store {
+		local := nso.Search(catalog, text, display)
 		games := make([]nso.Game, 0, len(local))
 		for _, h := range local {
 			games = append(games, h.Game)
 		}
 		if text == "" {
-			games = a.nso.Games(sys)
+			games = catalog
 		}
-		a.setSearchHits(games, text != "")
+		a.setSearchHits(games, text != "" && store)
 		return
 	}
 	gen := a.searchGen

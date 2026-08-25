@@ -47,6 +47,7 @@ var fallback = map[string]string{
 	"ABOUT_INFO":        "Info",
 	"SETTINGS_BACK":     "Back",
 	"GAME_SYSTEM":       "Game System",
+	"PLATFORM_SEARCH":   "Search platforms",
 	"TIMER_REMOVE":      "Remove",
 	"INSTALL_TITLE":     "Install Rich Presence Qt?",
 	"INSTALL_HINT":      "Add a launcher to your application menu?\nThis copies the app into ~/.config/rich-presence-u and downloads the icon and desktop entry from GitHub.",
