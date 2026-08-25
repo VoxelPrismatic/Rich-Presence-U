@@ -90,8 +90,50 @@ jobs:
           path: ${{ matrix.artifact }}
           if-no-files-found: error
 
+  build-windows:
+    needs: version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          path-type: inherit
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-pkgconf
+            mingw-w64-ucrt-x86_64-qt6-base
+            mingw-w64-ucrt-x86_64-qt6-tools
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        shell: msys2 {0}
+        env:
+          CGO_ENABLED: 1
+        run: |
+          export PATH="/ucrt64/bin:$PATH"
+          go build -ldflags "-s -w -H windowsgui" -o app-windows.exe .
+          mkdir dist-win
+          mv app-windows.exe dist-win/
+          windeployqt6 dist-win/app-windows.exe
+
+      - name: Zip
+        shell: pwsh
+        run: Compress-Archive -Path dist-win\* -DestinationPath app-windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-windows
+          path: app-windows.zip
+          if-no-files-found: error
+
   prerelease:
-    needs: [version, build]
+    needs: [version, build, build-windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -107,9 +149,9 @@ jobs:
           TAG: ${{ needs.version.outputs.tag }}
         run: |
           chmod +x dist/app dist/app-macos
-          NOTES="Pre-release ${TAG} from ${GITHUB_SHA}."$'\n\n'"- \`app\` — Linux x86_64"$'\n'"- \`app-macos\` — macOS (Apple Silicon)"
+          NOTES="Pre-release ${TAG} from ${GITHUB_SHA}."$'\n\n'"- \`app\` — Linux x86_64"$'\n'"- \`app-macos\` — macOS (Apple Silicon)"$'\n'"- \`app-windows.zip\` — Windows x86_64"
           gh release create "$TAG" \
             --prerelease \
             --title "$TAG" \
             --notes "$NOTES" \
-            dist/app dist/app-macos logo.png rich-presence-u.desktop
+            dist/app dist/app-macos dist/app-windows.zip logo.png rich-presence-u.desktop
