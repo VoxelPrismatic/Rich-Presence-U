@@ -24,7 +24,7 @@ A simple application that allows you to create your own activity statuses for al
 
 <img src="./.github/user_interface.png" alt="User interface" width="100%">
 
-> [!WARNING]
+> [!NOTE]
 > Automatic game detection is not supported on any console. Previous efforts
 > to integrate with online services like NSO have been quashed several years ago,
 > and any efforts to do so now will likely result in your online account being
@@ -33,21 +33,13 @@ A simple application that allows you to create your own activity statuses for al
 > This only refers to the console's online services, not Discord. Discord actually
 > encourages programs like this so they can build their game database.
 
-<p align="center">You can support NinStar's work by purchasing this application:</p>
-<p align="center">
-    <a href="https://ninstars.itch.io/rpc">
-        <img src="https://static.itch.io/images/badge-color.svg?sanitize=true"
-            alt="Available on itch.io" width="240">
-    </a>
-</p>
-
 # Install
 
-| OS      | Linked                                     | Portable                                                  |
-| ------- | ------------------------------------------ | --------------------------------------------------------- |
-| Linux   | [rich-presence-qt_linux][linux_shared]     | [rich-presence-qt_linux_(portable).AppImage][linux_portable] |
-| Windows | [rich-presence-qt_windows.exe][win_shared] | [rich-presence-qt_windows_(portable).zip][win_portable]   |
-| macOS   | [rich-presence-qt_macOS.app][mac_shared]   | [rich-presence-qt_macOS_(portable).app.zip][mac_portable] |
+| Target  | Linked                                       | Portable                                                     |
+| ------- | -------------------------------------------- | ------------------------------------------------------------ |
+| Linux   | [rich-presence-qt_linux][linux_shared]       | [rich-presence-qt_linux_(portable).AppImage][linux_portable] |
+| Windows | [rich-presence-qt_windows.zip][win_shared]   | [rich-presence-qt_windows_(portable).zip][win_portable]      |
+| macOS   | [rich-presence-qt_macOS.app.zip][mac_shared] | [rich-presence-qt_macOS_(portable).app.zip][mac_portable]    |
 
 > [!WARNING]
 >
@@ -92,7 +84,7 @@ A simple application that allows you to create your own activity statuses for al
 [golang]: https://go.dev/
 [linux_shared]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_linux
 [linux_portable]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_linux_(portable).AppImage
-[win_shared]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_windows.exe
+[win_shared]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_windows.zip
 [win_portable]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_windows_(portable).zip
-[mac_shared]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_macOS.app
+[mac_shared]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_macOS.app.zip
 [mac_portable]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_macOS_(portable).app.zip

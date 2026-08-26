@@ -22,8 +22,8 @@ const LauncherName = "app"
 
 const (
 	releaseLinux   = "rich-presence-qt_linux"
-	releaseMacOS   = "rich-presence-qt_macOS.app"
-	releaseWindows = "rich-presence-qt_windows.exe"
+	releaseMacOS   = "rich-presence-qt_macOS.app.zip"
+	releaseWindows = "rich-presence-qt_windows.zip"
 )
 
 func UserAgent() string {

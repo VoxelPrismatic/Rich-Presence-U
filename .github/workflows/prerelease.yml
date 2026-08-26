@@ -50,8 +50,10 @@ jobs:
         include:
           - os: ubuntu-latest
             artifact: rich-presence-qt_linux
+            upload: rich-presence-qt_linux
           - os: macos-latest
             artifact: rich-presence-qt_macOS.app
+            upload: rich-presence-qt_macOS.app.zip
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -89,7 +91,11 @@ jobs:
           go build -tags portable -o rpqt-portable .
 
       - name: Package
-        run: cp rpqt "${{ matrix.artifact }}"
+        run: |
+          cp rpqt "${{ matrix.artifact }}"
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            zip -9 "${{ matrix.upload }}" "${{ matrix.artifact }}"
+          fi
 
       - name: Package portable (Linux)
         if: runner.os == 'Linux'
@@ -101,8 +107,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: ${{ matrix.artifact }}
+          name: ${{ matrix.upload }}
+          path: ${{ matrix.upload }}
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v4
@@ -152,14 +158,16 @@ jobs:
           go build -tags portable -ldflags "-s -w -H windowsgui" -o dist-win/rich-presence-qt_windows_\(portable\).exe .
           windeployqt6 dist-win/rich-presence-qt_windows_\(portable\).exe
 
-      - name: Zip portable
+      - name: Zip
         shell: pwsh
-        run: Compress-Archive -Path dist-win\* -DestinationPath "rich-presence-qt_windows_(portable).zip"
+        run: |
+          Compress-Archive -Path rich-presence-qt_windows.exe -DestinationPath rich-presence-qt_windows.zip
+          Compress-Archive -Path dist-win\* -DestinationPath "rich-presence-qt_windows_(portable).zip"
 
       - uses: actions/upload-artifact@v4
         with:
           name: rich-presence-qt_windows
-          path: rich-presence-qt_windows.exe
+          path: rich-presence-qt_windows.zip
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v4
@@ -184,13 +192,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.version.outputs.tag }}
         run: |
-          chmod +x dist/rich-presence-qt_linux dist/rich-presence-qt_macOS.app "dist/rich-presence-qt_linux_(portable).AppImage" || true
+          chmod +x dist/rich-presence-qt_linux "dist/rich-presence-qt_linux_(portable).AppImage" || true
           NOTES="Pre-release ${TAG} from ${GITHUB_SHA}."$'\n\n'
           NOTES+="- \`rich-presence-qt_linux\` — Linux x86_64"$'\n'
           NOTES+="- \`rich-presence-qt_linux_(portable).AppImage\` — Linux x86_64 (bundled Qt)"$'\n'
-          NOTES+="- \`rich-presence-qt_macOS.app\` — macOS (Apple Silicon)"$'\n'
+          NOTES+="- \`rich-presence-qt_macOS.app.zip\` — macOS (Apple Silicon)"$'\n'
           NOTES+="- \`rich-presence-qt_macOS_(portable).app.zip\` — macOS app bundle (bundled Qt)"$'\n'
-          NOTES+="- \`rich-presence-qt_windows.exe\` — Windows x86_64"$'\n'
+          NOTES+="- \`rich-presence-qt_windows.zip\` — Windows x86_64"$'\n'
           NOTES+="- \`rich-presence-qt_windows_(portable).zip\` — Windows x86_64 (\`rich-presence-qt_windows_(portable).exe\` + Qt DLLs)"
           gh release create "$TAG" \
             --prerelease \
@@ -198,8 +206,8 @@ jobs:
             --notes "$NOTES" \
             dist/rich-presence-qt_linux \
             "dist/rich-presence-qt_linux_(portable).AppImage" \
-            dist/rich-presence-qt_macOS.app \
+            dist/rich-presence-qt_macOS.app.zip \
             "dist/rich-presence-qt_macOS_(portable).app.zip" \
-            dist/rich-presence-qt_windows.exe \
+            dist/rich-presence-qt_windows.zip \
             "dist/rich-presence-qt_windows_(portable).zip" \
             logo.png rich-presence-u.desktop
