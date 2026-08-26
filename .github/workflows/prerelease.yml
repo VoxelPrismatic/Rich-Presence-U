@@ -87,7 +87,11 @@ jobs:
         env:
           CGO_ENABLED: 1
         run: |
-          go build -o rpqt .
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            go build -ldflags "-s -w" -o rpqt .
+          else
+            go build -o rpqt .
+          fi
           go build -tags portable -o rpqt-portable .
 
       - name: Package
