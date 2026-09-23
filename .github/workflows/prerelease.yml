@@ -2,12 +2,16 @@ name: Pre-release
 
 on:
   workflow_dispatch:
+  push:
 
 permissions:
   contents: write
 
 jobs:
   version:
+    # Manual runs always build. A push builds only when the commit
+    # message (title or description) contains #run.
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '#run')
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.meta.outputs.version }}
