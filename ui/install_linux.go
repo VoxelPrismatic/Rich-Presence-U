@@ -12,7 +12,7 @@ import (
 )
 
 func (a *App) maybeInstall() {
-	qt6.QGuiApplication_SetDesktopFileName("rich-presence-u")
+	qt6.QGuiApplication_SetDesktopFileName("wl.float")
 	if a == nil || a.nso == nil {
 		return
 	}
