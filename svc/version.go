@@ -6,10 +6,10 @@ import (
 )
 
 // VERSION is the running app version. Bump this for releases.
-const VERSION = "2.7.0"
+const VERSION = "2.8.0"
 
 // BUILD is VERSION as an integer (2.6.0 -> 2600).
-const BUILD = 2700
+const BUILD = 2800
 
 // GitHubRepo is owner/name used for releases and the User-Agent URL.
 const GitHubRepo = "VoxelPrismatic/Rich-Presence-U"
