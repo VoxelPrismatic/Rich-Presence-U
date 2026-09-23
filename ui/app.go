@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"log"
 	"strings"
-	"time"
 
 	"github.com/mappu/miqt/qt6"
 	"github.com/mappu/miqt/qt6/mainthread"
@@ -24,7 +23,7 @@ type App struct {
 	rpc      *discord.Client
 	settings Settings
 	systems  map[string]*SystemState
-	start    int64
+	clk      playClock
 	applied  string
 	built    *discord.Activity
 	busy     bool
@@ -55,9 +54,9 @@ type App struct {
 	noParty       *qt6.QLabel
 	partySize     *qt6.QSpinBox
 	partyMax      *qt6.QSpinBox
-	elapsed       *qt6.QLabel
-	elapsedIcon   *qt6.QLabel
-	timerEnabled  bool
+	// appliedSys and appliedGame are the platform and title last sent to Discord.
+	appliedSys    string
+	appliedGame   string
 	fcPrefix      *qt6.QLabel
 	fcA, fcB, fcC *qt6.QLineEdit
 	nnid          *qt6.QLineEdit
@@ -70,7 +69,6 @@ type App struct {
 	userName      *qt6.QLabel
 	userStatus    *qt6.QLabel
 	applyBtn      *qt6.QPushButton
-	timerBtn      *qt6.QPushButton
 	visBtn        *qt6.QPushButton
 	cfgBtn        *qt6.QPushButton
 
@@ -85,13 +83,15 @@ type App struct {
 	dataBtn    *qt6.QPushButton
 	aboutTable *qt6.QTableWidget
 
-	tick *qt6.QTimer
-	hide *qt6.QTimer
-
-	searchTimer   *qt6.QTimer
-	searchHits    []nso.Game
-	searchGen     int
-	gameHighlight string
+	searchTimer     *qt6.QTimer
+	searchHits      []nso.Game
+	searchGen       int
+	gameHighlight   string
+	gameTyped       string
+	gameNav         bool
+	relayingGameKey bool
+	thumbCancel     context.CancelFunc
+	gameThumbs      map[string]*qt6.QPixmap
 }
 
 func (a *App) sysKey() string {
@@ -197,8 +197,8 @@ func (a *App) presence() discord.Presence {
 		Party:     gstate.Party,
 		PartySize: gstate.PartySize,
 		PartyMax:  gstate.PartyMax,
-		Start:     a.start,
 	}
+	p.Start, p.End = a.presenceTimestamps()
 	switch gstate.Mode {
 	case "custom":
 		p.Description = gstate.Description
@@ -238,15 +238,7 @@ func (a *App) statusButton() (label, u string) {
 }
 
 func (a *App) presenceForPush() discord.Presence {
-	p := a.presence()
-	if rem := a.timerRemaining(); rem > 0 {
-		p.End = time.Now().Unix() + int64(rem)
-		p.Start = 0
-	} else if a.timerEnabled && a.settings.Timer > 0 && a.settings.Activity {
-		p.End = time.Now().Unix() + int64(a.settings.Timer)
-		p.Start = 0
-	}
-	return p
+	return a.presence()
 }
 
 func (a *App) fingerprint() string {
@@ -277,13 +269,6 @@ func (a *App) rememberGame() {
 		hist = hist[len(hist)-8:]
 	}
 	st.History = hist
-}
-
-func (a *App) bumpElapsed(gameChanged bool) {
-	st := a.sys()
-	if a.start == 0 || (gameChanged && !st.TimePreserve) {
-		a.start = time.Now().Unix()
-	}
 }
 
 func (a *App) debug(format string, args ...any) {

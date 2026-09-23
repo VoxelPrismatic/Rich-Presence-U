@@ -467,13 +467,13 @@ func (a *App) pickPlatform(p igdb.Platform) {
 		a.refreshPlatformButton()
 		return
 	}
+	a.noteClockDraft(a.sysKey(), a.sys().Game)
 	a.settings.Platform = p.Slug
 	if sys, ok := nso.ParseSystem(p.StoreCode()); ok {
 		a.settings.System = sys
 	} else {
 		a.settings.System = ""
 	}
-	a.bumpElapsed(true)
 	a.reloadSystem()
 }
 

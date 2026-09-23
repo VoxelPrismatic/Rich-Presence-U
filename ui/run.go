@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"context"
 	"os"
 
 	"github.com/mappu/miqt/qt6"
@@ -32,18 +31,19 @@ func Main() {
 	igdbc.UserAgent = svc.UserAgent()
 	igdbc.SetCredentials(settings.IGDBClientID, settings.IGDBClientSecret)
 	a := &App{
-		tr:           newI18n(),
-		nso:          client,
-		igdbAPI:      igdbc,
-		rpc:          discord.New(),
-		settings:     settings,
-		systems:      systems,
-		log:          logger{dir: client.ConfigDir},
-		timerEnabled: settings.Timer > 0,
+		tr:       newI18n(),
+		nso:      client,
+		igdbAPI:  igdbc,
+		rpc:      discord.New(),
+		settings: settings,
+		systems:  systems,
+		log:      logger{dir: client.ConfigDir},
 	}
 	a.log.SetEnabled(a.settings.DebugLog)
 	a.tr.Set(a.settings.Language)
 	qt6.QCoreApplication_SetApplicationName(a.tr.T("APP_TITLE"))
+	// Krohnkite floats windows whose class is wl.float. On Wayland this is the app id.
+	qt6.QGuiApplication_SetDesktopFileName("wl.float")
 
 	a.rpc.OnClose(func(err error) {
 		mainthread.Start(func() {
@@ -63,24 +63,8 @@ func Main() {
 	a.loadSettingsIntoUI()
 	a.reloadSystem()
 	a.updateApply()
-	a.bumpElapsed(false)
 
-	a.tick = qt6.NewQTimer2(a.win.QObject)
-	a.tick.SetInterval(1000)
-	a.tick.OnTimeout(func() { a.updateElapsed() })
-	a.tick.Start2()
-
-	a.hide = qt6.NewQTimer2(a.win.QObject)
-	a.hide.SetSingleShot(true)
-	a.hide.OnTimeout(func() {
-		a.settings.Activity = false
-		if a.rpc.Connected() {
-			go func() { _ = a.rpc.Clear(context.Background()) }()
-		}
-		a.updateApply()
-		a.updateElapsed()
-		a.refreshScreensaver()
-	})
+	a.initClockTimer()
 
 	a.win.Show()
 	if a.settings.AutoConnect {

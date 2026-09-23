@@ -2,7 +2,6 @@ package ui
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -54,9 +53,6 @@ func (a *App) updateApply() {
 		a.userStatus.SetText(a.tr.T("USER_CONNECTING"))
 	} else {
 		a.userStatus.SetText(a.tr.T("USER_DISCONNECTED"))
-	}
-	if a.timerBtn != nil {
-		a.timerBtn.SetChecked(a.timerRemaining() > 0)
 	}
 }
 
@@ -120,8 +116,11 @@ func (a *App) connect(andPush bool) {
 
 func (a *App) pushStatus() {
 	a.rememberGame()
-	a.bumpElapsed(false)
+	a.commitClockForApply()
 	act := discord.Build(a.presenceForPush())
+	fp := a.fingerprint()
+	sysKey := a.sysKey()
+	gameID := a.sys().Game
 	a.built = &act
 	id := a.nso.Meta.ClientID(a.discordSystem())
 	needSwitch := a.rpc.Connected() && a.rpc.ClientID() != id
@@ -148,8 +147,12 @@ func (a *App) pushStatus() {
 				a.debug("set activity: %v", err)
 				qt6.QMessageBox_Warning(a.win.QWidget, a.tr.T("CONNECTION_ERROR_TITLE"), err.Error())
 			} else {
-				a.applied = a.fingerprint()
-				a.startHideTimer()
+				a.applied = fp
+				a.appliedSys = sysKey
+				a.appliedGame = gameID
+				a.ensureElapsedTick()
+				a.showClockForCurrent()
+				a.updateElapsed()
 			}
 			a.updateApply()
 			a.refreshScreensaver()
@@ -184,145 +187,6 @@ func (a *App) onVisibility() {
 	}()
 }
 
-func (a *App) timerRemaining() int {
-	if a.hide == nil || !a.hide.IsActive() {
-		return 0
-	}
-	ms := a.hide.RemainingTime()
-	if ms <= 0 {
-		return 0
-	}
-	return (ms + 999) / 1000
-}
-
-func formatClock(sec int) string {
-	if sec < 0 {
-		sec = 0
-	}
-	h := sec / 3600
-	m := (sec % 3600) / 60
-	s := sec % 60
-	if h > 0 {
-		return fmt.Sprintf("%d:%02d:%02d", h, m, s)
-	}
-	return fmt.Sprintf("%d:%02d", m, s)
-}
-
-func paddedSpin(max, digits, width int) *qt6.QSpinBox {
-	sp := qt6.NewQSpinBox2()
-	sp.SetRange(0, max)
-	sp.SetAlignment(qt6.AlignRight | qt6.AlignVCenter)
-	sp.SetSizePolicy2(qt6.QSizePolicy__Fixed, qt6.QSizePolicy__Fixed)
-	sp.SetFixedWidth(width)
-	pad := func() {
-		if le := sp.LineEdit(); le != nil {
-			txt := fmt.Sprintf("%0*d", digits, sp.Value())
-			if le.Text() != txt {
-				cur := le.CursorPosition()
-				le.SetText(txt)
-				if cur > len(txt) {
-					cur = len(txt)
-				}
-				le.SetCursorPosition(cur)
-			}
-		}
-	}
-	sp.OnValueChanged(func(int) { pad() })
-	if sp.Value() == 0 {
-		sp.SetValue(1)
-		sp.SetValue(0)
-	}
-	return sp
-}
-
-func (a *App) startHideTimer() {
-	if a.hide == nil {
-		return
-	}
-	a.hide.Stop()
-	if a.timerEnabled && a.settings.Timer > 0 && a.settings.Activity {
-		a.hide.Start(a.settings.Timer * 1000)
-		if a.rpc.Connected() && a.built != nil {
-			act := discord.Build(a.presenceForPush())
-			a.built = &act
-			go func() {
-				_ = a.rpc.SetActivity(context.Background(), &act)
-			}()
-		}
-	}
-	a.updateApply()
-	a.updateElapsed()
-}
-
-func (a *App) onTimer() {
-	d := qt6.NewQDialog(a.win.QWidget)
-	d.SetWindowTitle(a.tr.T("TIMER_TITLE"))
-	lay := qt6.NewQVBoxLayout(d.QWidget)
-	lay.SetSizeConstraint(qt6.QLayout__SetFixedSize)
-	hint := qt6.NewQLabel3(popupText(a.tr.T("TIMER_HINT")))
-	hint.SetWordWrap(true)
-	lay.AddWidget(hint.QWidget)
-	row := qt6.NewQHBoxLayout2()
-	row.SetSpacing(2)
-	row.SetContentsMargins(0, 0, 0, 0)
-	h := paddedSpin(99, 2, 64)
-	h.SetToolTip(a.tr.T("TIMER_HOURS"))
-	m := paddedSpin(59, 2, 56)
-	m.SetToolTip(a.tr.T("TIMER_MINUTES"))
-	s := paddedSpin(59, 2, 56)
-	s.SetToolTip(a.tr.T("TIMER_SECONDS"))
-	sec := a.settings.Timer
-	h.SetValue(sec / 3600)
-	m.SetValue((sec % 3600) / 60)
-	s.SetValue(sec % 60)
-	row.AddWidget(h.QWidget)
-	row.AddWidget(qt6.NewQLabel3(":").QWidget)
-	row.AddWidget(m.QWidget)
-	row.AddWidget(qt6.NewQLabel3(":").QWidget)
-	row.AddWidget(s.QWidget)
-	lay.AddLayout(row.QLayout)
-	btns := qt6.NewQDialogButtonBox4(qt6.QDialogButtonBox__Ok | qt6.QDialogButtonBox__Cancel)
-	btns.OnAccepted(func() { d.Accept() })
-	btns.OnRejected(func() { d.Reject() })
-	remove := btns.AddButton2(a.tr.T("TIMER_REMOVE"), qt6.QDialogButtonBox__DestructiveRole)
-	remove.OnClicked(func() { d.Done(2) })
-	lay.AddWidget(btns.QWidget)
-	switch d.Exec() {
-	case int(qt6.QDialog__Accepted):
-		a.settings.Timer = h.Value()*3600 + m.Value()*60 + s.Value()
-		a.timerEnabled = a.settings.Timer > 0
-		a.persist()
-		a.startHideTimer()
-	case 2:
-		a.clearTimer()
-	}
-	if a.timerBtn != nil {
-		a.timerBtn.SetChecked(a.timerRemaining() > 0)
-	}
-}
-
-func (a *App) stopTimer() {
-	a.timerEnabled = false
-	if a.hide != nil {
-		a.hide.Stop()
-	}
-	if a.rpc.Connected() && a.settings.Activity && a.built != nil {
-		act := discord.Build(a.presenceForPush())
-		a.built = &act
-		go func() {
-			_ = a.rpc.SetActivity(context.Background(), &act)
-		}()
-	}
-	a.updateApply()
-	a.updateElapsed()
-}
-
-func (a *App) clearTimer() {
-	a.settings.Timer = 0
-	a.persist()
-	a.stopTimer()
-}
-
 func (a *App) onDataAction() {
 	kind := a.dataCombo.CurrentData().ToString()
 	switch kind {
@@ -341,37 +205,6 @@ func (a *App) onDataAction() {
 		_ = a.nso.ResetAll()
 		qt6.QCoreApplication_Quit()
 	}
-}
-
-func (a *App) updateElapsed() {
-	if a.elapsed == nil {
-		return
-	}
-	if rem := a.timerRemaining(); rem > 0 {
-		a.elapsed.SetText(formatClock(rem))
-		if a.elapsedIcon != nil {
-			a.elapsedIcon.SetPixmap(iconNamed("chronometer", "chronometer").Pixmap2(16, 16))
-		}
-		if a.timerBtn != nil {
-			a.timerBtn.SetChecked(true)
-		}
-		return
-	}
-	if a.elapsedIcon != nil {
-		a.elapsedIcon.SetPixmap(iconGames().Pixmap2(16, 16))
-	}
-	if a.timerBtn != nil {
-		a.timerBtn.SetChecked(false)
-	}
-	if a.start == 0 {
-		a.elapsed.SetText("0:00")
-		return
-	}
-	d := time.Since(time.Unix(a.start, 0))
-	if d < 0 {
-		d = 0
-	}
-	a.elapsed.SetText(formatClock(int(d.Seconds())))
 }
 
 func (a *App) loadAvatar(user discord.User) {

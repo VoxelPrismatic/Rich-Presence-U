@@ -208,12 +208,7 @@ func (a *App) buildPresence() *qt6.QWidget {
 	partyRow.AddStretch()
 	col.AddLayout(partyRow.QLayout)
 
-	timeRow := qt6.NewQHBoxLayout2()
-	a.elapsedIcon = qt6.NewQLabel2()
-	a.elapsedIcon.SetPixmap(iconGames().Pixmap2(16, 16))
-	a.elapsed = qt6.NewQLabel3("0:00")
-	timeRow.AddWidget(a.elapsedIcon.QWidget)
-	timeRow.AddWidget(a.elapsed.QWidget)
+	timeRow := a.buildClockRow()
 	timeRow.AddStretch()
 	col.AddLayout(timeRow.QLayout)
 
@@ -308,15 +303,6 @@ func (a *App) buildBar() *qt6.QWidget {
 
 	a.applyBtn = qt6.NewQPushButton2()
 	a.applyBtn.OnClicked(func() { a.onApply() })
-	a.timerBtn = qt6.NewQPushButton2()
-	a.timerBtn.SetCheckable(true)
-	a.timerBtn.SetIcon(iconNamed("chronometer", "chronometer"))
-	a.timerBtn.SetToolTip(a.tr.T("TIMER_TITLE"))
-	a.timerBtn.SetContextMenuPolicy(qt6.CustomContextMenu)
-	a.timerBtn.OnClicked(func() { a.onTimer() })
-	a.timerBtn.OnCustomContextMenuRequested(func(pos *qt6.QPoint) {
-		a.stopTimer()
-	})
 	a.visBtn = qt6.NewQPushButton2()
 	a.visBtn.SetCheckable(true)
 	a.visBtn.OnClicked(func() { a.onVisibility() })
@@ -325,7 +311,6 @@ func (a *App) buildBar() *qt6.QWidget {
 	a.cfgBtn.SetToolTip(a.tr.T("CONFIGURE"))
 	a.cfgBtn.OnClicked(func() { a.stack.SetCurrentIndex(1) })
 	row.AddWidget(a.applyBtn.QWidget)
-	row.AddWidget(a.timerBtn.QWidget)
 	row.AddWidget(a.visBtn.QWidget)
 	row.AddWidget(a.cfgBtn.QWidget)
 	return bar
@@ -480,9 +465,12 @@ func (a *App) onGameTyped(text string) {
 	if ok {
 		id = g.ID
 	}
+	if prev != id {
+		a.noteClockDraft(a.sysKey(), prev)
+	}
 	a.sys().Game = id
 	if prev != id {
-		a.bumpElapsed(true)
+		a.showClockForCurrent()
 	}
 	a.scheduleGameSearch()
 	a.updateRegionItems()
@@ -492,11 +480,14 @@ func (a *App) onGameTyped(text string) {
 
 func (a *App) setGameID(id string) {
 	prev := a.sys().Game
-	a.sys().Game = id
 	if prev != id {
-		a.bumpElapsed(true)
+		a.noteClockDraft(a.sysKey(), prev)
 	}
+	a.sys().Game = id
 	a.refreshGameUI()
+	if prev != id {
+		a.showClockForCurrent()
+	}
 	a.updateApply()
 }
 
@@ -530,6 +521,7 @@ func (a *App) reloadSystem() {
 	a.refreshGameUI()
 	a.updateInfoButton()
 	a.updateApply()
+	a.showClockForCurrent()
 	a.updateElapsed()
 }
 

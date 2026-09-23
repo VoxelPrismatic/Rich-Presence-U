@@ -16,6 +16,26 @@ func (c *Client) CoverURL(game Game, preferred Region) string {
 	return u
 }
 
+// CachedCover is a previously downloaded cover, if the file is already on disk.
+func (c *Client) CachedCover(game Game, preferred Region) (string, bool) {
+	if c == nil {
+		return "", false
+	}
+	url, region := game.Cover(preferred)
+	if url == "" {
+		return "", false
+	}
+	if !region.Valid() {
+		region = preferred
+	}
+	path := c.imagePath(game, url, region)
+	st, err := os.Stat(path)
+	if err != nil || st.Size() == 0 {
+		return "", false
+	}
+	return path, true
+}
+
 // CoverPath returns a cached local image, downloading it when missing.
 // Files live in ~/.cache/rich-presence-u/{nsuid}.{region}.ext
 func (c *Client) CoverPath(ctx context.Context, game Game, preferred Region) (string, error) {

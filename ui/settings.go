@@ -23,7 +23,6 @@ type Settings struct {
 	KeepOn           bool       `json:"keep_on"`
 	DebugLog         bool       `json:"debug_log"`
 	Activity         bool       `json:"activity"`
-	Timer            int        `json:"timer"`
 	Region           nso.Region `json:"region"`
 	WindowW          int        `json:"window_w"`
 	WindowH          int        `json:"window_h"`
@@ -267,8 +266,6 @@ func migrateGodotSettings(dir string, s Settings) Settings {
 			s.DebugLog = v == "true"
 		case "activity":
 			s.Activity = v == "true"
-		case "timer":
-			s.Timer, _ = strconv.Atoi(v)
 		}
 	}
 	if b, err := os.ReadFile(filepath.Join(dir, "settings.json")); err == nil {

@@ -9,5 +9,5 @@ Icon=$HOME/.config/rich-presence-u/logo.png
 Terminal=false
 Categories=Game;Network;
 StartupNotify=false
-StartupWMClass=rich-presence-u
+StartupWMClass=wl.float
 Keywords=discord;nintendo;switch;presence;

@@ -21,6 +21,9 @@ func TestDesktopEntry(t *testing.T) {
 	if !strings.Contains(out, "Icon=/tmp/rich-presence-u/logo.png") {
 		t.Fatal(out)
 	}
+	if !strings.Contains(out, "StartupWMClass=wl.float") {
+		t.Fatalf("class: %s", out)
+	}
 	if !strings.Contains(out, "TryExec=/tmp/rich-presence-u/app") {
 		t.Fatal(out)
 	}

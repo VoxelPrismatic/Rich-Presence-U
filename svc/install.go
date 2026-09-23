@@ -37,7 +37,7 @@ Icon=` + iconPath + `
 Terminal=false
 Categories=Game;Network;
 StartupNotify=false
-StartupWMClass=rich-presence-u
+StartupWMClass=wl.float
 Keywords=discord;nintendo;switch;presence;
 `
 }
