@@ -21,6 +21,8 @@ const (
 	StatusDisplayDetails = 2
 )
 
+const defaultActivityName = "A Game\u2122"
+
 // Activity is a Discord SET_ACTIVITY payload.
 type Activity struct {
 	Name              string
@@ -84,7 +86,7 @@ func activityName(p Presence) string {
 	if n := strings.TrimSpace(p.Console); n != "" {
 		return pad2(n)
 	}
-	return "Rich Presence U"
+	return defaultActivityName
 }
 
 // Build maps the editor fields onto a Discord activity the same way the
@@ -99,7 +101,7 @@ func Build(p Presence) Activity {
 
 	largeText := strings.TrimSpace(p.Title)
 	if largeText == "" {
-		largeText = "Rich Presence U"
+		largeText = defaultActivityName
 	}
 
 	a := Activity{

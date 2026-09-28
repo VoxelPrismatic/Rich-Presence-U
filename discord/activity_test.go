@@ -102,8 +102,8 @@ func TestBuildNameFallback(t *testing.T) {
 		t.Fatalf("console name fallback %q", a.Name)
 	}
 	a = Build(Presence{})
-	if a.Name != "Rich Presence U" {
-		t.Fatalf("empty name fallback %q", a.Name)
+	if a.Name != defaultActivityName || a.LargeText != defaultActivityName {
+		t.Fatalf("empty name fallback name=%q large=%q", a.Name, a.LargeText)
 	}
 }
 
