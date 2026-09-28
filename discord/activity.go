@@ -5,19 +5,38 @@ import (
 	"strings"
 )
 
+// Activity types accepted by SET_ACTIVITY.
+const (
+	ActivityPlaying    = 0
+	ActivityListening  = 2
+	ActivityWatching   = 3
+	ActivityCompeting  = 5
+)
+
+// Status display type selects which field the member list uses after
+// "Playing" / "Listening to" / "Watching".
+const (
+	StatusDisplayName    = 0
+	StatusDisplayState   = 1
+	StatusDisplayDetails = 2
+)
+
 // Activity is a Discord SET_ACTIVITY payload.
 type Activity struct {
-	Details        string
-	State          string
-	StartTimestamp int64
-	EndTimestamp   int64
-	LargeImage     string
-	LargeText      string
-	SmallImage     string
-	SmallText      string
-	PartySize      int
-	PartyMax       int
-	Buttons        []Button
+	Name              string
+	Type              int
+	StatusDisplayType int
+	Details           string
+	State             string
+	StartTimestamp    int64
+	EndTimestamp      int64
+	LargeImage        string
+	LargeText         string
+	SmallImage        string
+	SmallText         string
+	PartySize         int
+	PartyMax          int
+	Buttons           []Button
 }
 
 // Button is a Rich Presence action (visible to other users, not yourself).
@@ -58,6 +77,16 @@ func blank(s string) bool {
 	return strings.TrimSpace(s) == ""
 }
 
+func activityName(p Presence) string {
+	if n := strings.TrimSpace(p.Title); n != "" {
+		return pad2(n)
+	}
+	if n := strings.TrimSpace(p.Console); n != "" {
+		return pad2(n)
+	}
+	return "Rich Presence U"
+}
+
 // Build maps the editor fields onto a Discord activity the same way the
 // original Godot app did (without the dropped "minimal status" layout).
 func Build(p Presence) Activity {
@@ -70,17 +99,20 @@ func Build(p Presence) Activity {
 
 	largeText := strings.TrimSpace(p.Title)
 	if largeText == "" {
-		largeText = "Rich Presence Qt"
+		largeText = "Rich Presence U"
 	}
 
 	a := Activity{
-		Details:        title,
-		State:          desc,
-		StartTimestamp: p.Start,
-		EndTimestamp:   p.End,
-		LargeImage:     p.CoverKey,
-		LargeText:      largeText,
-		Buttons:        p.Buttons,
+		Name:              activityName(p),
+		Type:              ActivityPlaying,
+		StatusDisplayType: StatusDisplayName,
+		Details:           title,
+		State:             desc,
+		StartTimestamp:    p.Start,
+		EndTimestamp:      p.End,
+		LargeImage:        p.CoverKey,
+		LargeText:         largeText,
+		Buttons:           p.Buttons,
 	}
 	if a.LargeImage == "" {
 		a.LargeImage = "default"
@@ -110,7 +142,14 @@ func Build(p Presence) Activity {
 }
 
 func (a Activity) payload() map[string]any {
-	out := map[string]any{"instance": true}
+	out := map[string]any{
+		"instance":            true,
+		"type":                a.Type,
+		"status_display_type": a.StatusDisplayType,
+	}
+	if a.Name != "" {
+		out["name"] = a.Name
+	}
 	if a.Details != "" {
 		out["details"] = a.Details
 	}
