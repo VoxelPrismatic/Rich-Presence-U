@@ -164,7 +164,7 @@ jobs:
           go build -ldflags "-s -w -H windowsgui" -o rich-presence-qt_windows.exe .
           mkdir dist-win
           go build -tags portable -ldflags "-s -w -H windowsgui" -o dist-win/rich-presence-qt_windows_\(portable\).exe .
-          windeployqt6 dist-win/rich-presence-qt_windows_\(portable\).exe
+          bash .github/scripts/pack-windows-portable.sh dist-win/rich-presence-qt_windows_\(portable\).exe
 
       - name: Zip
         shell: pwsh
@@ -207,7 +207,7 @@ jobs:
           NOTES+="- \`rich-presence-qt_macOS.app.zip\` — macOS (Apple Silicon)"$'\n'
           NOTES+="- \`rich-presence-qt_macOS_(portable).app.zip\` — macOS app bundle (bundled Qt)"$'\n'
           NOTES+="- \`rich-presence-qt_windows.zip\` — Windows x86_64"$'\n'
-          NOTES+="- \`rich-presence-qt_windows_(portable).zip\` — Windows x86_64 (\`rich-presence-qt_windows_(portable).exe\` + Qt DLLs)"
+          NOTES+="- \`rich-presence-qt_windows_(portable).zip\` — Windows x86_64 (\`rich-presence-qt_windows_(portable).exe\` + Qt DLLs + MinGW runtime, including libgcc)"
           gh release create "$TAG" \
             --prerelease \
             --title "$TAG" \
