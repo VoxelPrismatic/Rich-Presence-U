@@ -35,16 +35,23 @@ A simple application that allows you to create your own activity statuses for al
 
 # Install
 
-| Target  | Linked                                       | Portable                                                     |
-| ------- | -------------------------------------------- | ------------------------------------------------------------ |
-| Linux   | [rich-presence-qt_linux][linux_shared]       | [rich-presence-qt_linux_(portable).AppImage][linux_portable] |
-| Windows | [rich-presence-qt_windows.zip][win_shared]   | [rich-presence-qt_windows_(portable).zip][win_portable]      |
-| macOS   | [rich-presence-qt_macOS.app.zip][mac_shared] | [rich-presence-qt_macOS_(portable).app.zip][mac_portable]    |
+| Target  | Linked                                                                        | Portable                                                                                    |
+| ------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Linux   | [rich-presence-qt_linux][linux_shared]                                        | [rich-presence-qt_linux_(portable).AppImage][linux_portable]                                |
+| Windows | [rich-presence-qt_windows.zip][win_shared]<br>(not recommended<sup>[1]</sup>) | [rich-presence-qt_windows_(portable).zip][win_portable]<br> **(recommended<sup>[2]</sup>)** |
+| macOS   | [rich-presence-qt_macOS.app.zip][mac_shared]                                  | [rich-presence-qt_macOS_(portable).app.zip][mac_portable]                                   |
 
 > [!WARNING]
 >
 > 1. Builds for macOS and Windows are completely untested.
 > 2. For Linked builds, ensure that you have [Qt][qt] installed, and the Breeze Icon Pack to be safe.
+
+> [!NOTE]
+>
+> 1. Not recommended for most users, only developers.
+>    - Needs GCC, Qt, and more to be installed manually.
+> 2. Portable build recommended for most Windows users, as all the dependencies are included.
+>    - Larger download, but less headache :)
 
 <details>
     <summary>Build manually</summary>
