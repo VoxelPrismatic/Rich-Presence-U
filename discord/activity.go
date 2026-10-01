@@ -7,10 +7,10 @@ import (
 
 // Activity types accepted by SET_ACTIVITY.
 const (
-	ActivityPlaying    = 0
-	ActivityListening  = 2
-	ActivityWatching   = 3
-	ActivityCompeting  = 5
+	ActivityPlaying   = 0
+	ActivityListening = 2
+	ActivityWatching  = 3
+	ActivityCompeting = 5
 )
 
 // Status display type selects which field the member list uses after
@@ -92,8 +92,6 @@ func activityName(p Presence) string {
 // Build maps the editor fields onto a Discord activity the same way the
 // original Godot app did (without the dropped "minimal status" layout).
 func Build(p Presence) Activity {
-	title := pad2(p.Title)
-
 	desc := ""
 	if !blank(p.Description) {
 		desc = pad2(p.Description)
@@ -108,7 +106,7 @@ func Build(p Presence) Activity {
 		Name:              activityName(p),
 		Type:              ActivityPlaying,
 		StatusDisplayType: StatusDisplayName,
-		Details:           title,
+		Details:           pad2(p.Console),
 		State:             desc,
 		StartTimestamp:    p.Start,
 		EndTimestamp:      p.End,
