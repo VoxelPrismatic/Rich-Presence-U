@@ -126,9 +126,6 @@ func Build(p Presence) Activity {
 			a.State = p.Tag
 		}
 	}
-	if a.State == "" && !blank(p.Title) && !blank(p.Console) {
-		a.State = pad2(p.Console)
-	}
 
 	if p.Party {
 		if a.State == "" {
