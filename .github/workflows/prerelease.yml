@@ -149,7 +149,22 @@ jobs:
             mingw-w64-ucrt-x86_64-pkgconf
             mingw-w64-ucrt-x86_64-qt6-base
             mingw-w64-ucrt-x86_64-qt6-svg
-            mingw-w64-ucrt-x86_64-qt6-tools
+            mingw-w64-ucrt-x86_64-qt6-static
+            mingw-w64-ucrt-x86_64-freetype
+            mingw-w64-ucrt-x86_64-harfbuzz
+            mingw-w64-ucrt-x86_64-libpng
+            mingw-w64-ucrt-x86_64-libjpeg-turbo
+            mingw-w64-ucrt-x86_64-pcre2
+            mingw-w64-ucrt-x86_64-zlib
+            mingw-w64-ucrt-x86_64-brotli
+            mingw-w64-ucrt-x86_64-bzip2
+            mingw-w64-ucrt-x86_64-libb2
+            mingw-w64-ucrt-x86_64-graphite2
+            mingw-w64-ucrt-x86_64-openssl
+            mingw-w64-ucrt-x86_64-glib2
+            mingw-w64-ucrt-x86_64-gettext
+            mingw-w64-ucrt-x86_64-libiconv
+            mingw-w64-ucrt-x86_64-libffi
 
       - uses: actions/setup-go@v5
         with:
@@ -163,8 +178,7 @@ jobs:
           export PATH="/ucrt64/bin:$PATH"
           go build -ldflags "-s -w -H windowsgui" -o rich-presence-qt_windows.exe .
           mkdir dist-win
-          go build -tags portable -ldflags "-s -w -H windowsgui" -o dist-win/rich-presence-qt_windows_\(portable\).exe .
-          bash .github/scripts/pack-windows-portable.sh dist-win/rich-presence-qt_windows_\(portable\).exe
+          bash .github/scripts/pack-windows-portable.sh "$PWD/dist-win/rich-presence-qt_windows_(portable).exe"
 
       - name: Zip
         shell: pwsh
