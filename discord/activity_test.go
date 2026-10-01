@@ -17,6 +17,12 @@ func TestBuildDescriptionAndTag(t *testing.T) {
 	if a.Details != "X  " {
 		t.Fatalf("padded title %q", a.Details)
 	}
+	if a.Name != "X  " {
+		t.Fatalf("padded name %q", a.Name)
+	}
+	if a.Type != ActivityPlaying {
+		t.Fatalf("type %d", a.Type)
+	}
 	if a.State != "SW-1234-5678-9012" {
 		t.Fatalf("tag as state %q", a.State)
 	}
@@ -33,6 +39,9 @@ func TestBuildDescriptionAndTag(t *testing.T) {
 	})
 	if a.Details != "Splatoon 3" || a.LargeText != "Splatoon 3" {
 		t.Fatalf("game title %+v", a)
+	}
+	if a.Name != "Splatoon 3" {
+		t.Fatalf("activity name %q", a.Name)
 	}
 
 	a = Build(Presence{
@@ -62,6 +71,15 @@ func TestBuildParty(t *testing.T) {
 	if len(size) != 2 || size[0] != 2 || size[1] != 4 {
 		t.Fatalf("payload party %v", p["party"])
 	}
+	if p["name"] != "Game" {
+		t.Fatalf("payload name %v", p["name"])
+	}
+	if p["type"] != ActivityPlaying {
+		t.Fatalf("payload type %v", p["type"])
+	}
+	if p["status_display_type"] != StatusDisplayName {
+		t.Fatalf("payload status_display_type %v", p["status_display_type"])
+	}
 }
 
 func TestBuildButtons(t *testing.T) {
@@ -75,6 +93,17 @@ func TestBuildButtons(t *testing.T) {
 	btns, _ := p["buttons"].([]map[string]string)
 	if len(btns) != 1 || btns[0]["label"] != "Buy on eShop" || !strings.Contains(btns[0]["url"], "nintendo.com") {
 		t.Fatalf("buttons %v", p["buttons"])
+	}
+}
+
+func TestBuildNameFallback(t *testing.T) {
+	a := Build(Presence{Console: "Wii U"})
+	if a.Name != "Wii U" {
+		t.Fatalf("console name fallback %q", a.Name)
+	}
+	a = Build(Presence{})
+	if a.Name != defaultActivityName || a.LargeText != defaultActivityName {
+		t.Fatalf("empty name fallback name=%q large=%q", a.Name, a.LargeText)
 	}
 }
 
