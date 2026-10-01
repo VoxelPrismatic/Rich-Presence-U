@@ -117,8 +117,17 @@ func (a *App) connect(andPush bool) {
 func (a *App) pushStatus() {
 	a.rememberGame()
 	a.commitClockForApply()
+	// The payload and the fingerprint have to include the clock that this
+	// apply will start. presenceTimestamps stays empty until running is set,
+	// so without this the first click reaches Discord and then the button
+	// still says Apply, because starting the clock changes the fingerprint.
+	wasRunning := a.clk.running
+	a.clk.running = true
 	act := discord.Build(a.presenceForPush())
 	fp := a.fingerprint()
+	if !wasRunning {
+		a.clk.running = false
+	}
 	sysKey := a.sysKey()
 	gameID := a.sys().Game
 	a.built = &act
