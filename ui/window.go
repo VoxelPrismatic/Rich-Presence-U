@@ -129,17 +129,8 @@ func (a *App) buildPresence() *qt6.QWidget {
 		if a.silent {
 			return
 		}
-		g := a.gameState()
-		switch {
-		case a.desc.CurrentIndex() >= 0 && a.desc.CurrentData().ToString() == "{fc}":
-			g.Mode = "friendcode"
-		case strings.TrimSpace(text) == "":
-			g.Mode = "empty"
-			g.Description = ""
-		default:
-			g.Mode = "custom"
-			g.Description = text
-		}
+		// Editing the line edit leaves the friend-code row selected, so compare text.
+		g := applyDescriptionText(a.gameState(), text, a.friendCodeLabel())
 		a.putGame(g)
 		a.updateApply()
 	})
@@ -429,6 +420,22 @@ func (a *App) friendCodeLabel() string {
 	default:
 		return a.tr.T("TAG_TITLE_FCID")
 	}
+}
+
+// applyDescriptionText sets friend-code mode only when text is the friend-code
+// entry. Any other non-blank value is a custom description.
+func applyDescriptionText(g GameState, text, friendLabel string) GameState {
+	switch {
+	case text == friendLabel:
+		g.Mode = "friendcode"
+	case strings.TrimSpace(text) == "":
+		g.Mode = "empty"
+		g.Description = ""
+	default:
+		g.Mode = "custom"
+		g.Description = text
+	}
+	return g
 }
 
 func (a *App) fillDescOptions() {
