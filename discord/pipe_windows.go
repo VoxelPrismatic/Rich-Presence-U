@@ -5,8 +5,9 @@ package discord
 import (
 	"fmt"
 	"net"
-	"os"
 	"time"
+
+	"github.com/Microsoft/go-winio"
 )
 
 func ipcPaths() []string {
@@ -18,31 +19,10 @@ func ipcPaths() []string {
 }
 
 func dialIPC(path string, timeout time.Duration) (net.Conn, error) {
-	deadline := time.Now().Add(timeout)
-	for {
-		f, err := os.OpenFile(path, os.O_RDWR, 0)
-		if err == nil {
-			return &fileConn{File: f}, nil
-		}
-		if time.Now().After(deadline) {
-			return nil, err
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
+	// os.OpenFile opens the pipe in synchronous mode. A blocked Read then
+	// holds the handle, and the next Write waits until that Read finishes.
+	// Discord does not answer until the write arrives, so Apply sits there
+	// until the pipe is closed. Overlapped I/O lets the read loop and the
+	// write run together, which is what a Unix socket already does.
+	return winio.DialPipe(path, &timeout)
 }
-
-// fileConn lets a Windows named-pipe handle satisfy net.Conn.
-type fileConn struct {
-	*os.File
-}
-
-func (c *fileConn) LocalAddr() net.Addr                { return pipeAddr(c.Name()) }
-func (c *fileConn) RemoteAddr() net.Addr               { return pipeAddr(c.Name()) }
-func (c *fileConn) SetDeadline(t time.Time) error      { return nil }
-func (c *fileConn) SetReadDeadline(t time.Time) error  { return nil }
-func (c *fileConn) SetWriteDeadline(t time.Time) error { return nil }
-
-type pipeAddr string
-
-func (a pipeAddr) Network() string { return "pipe" }
-func (a pipeAddr) String() string  { return string(a) }
