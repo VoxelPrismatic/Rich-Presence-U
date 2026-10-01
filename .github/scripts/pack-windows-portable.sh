@@ -73,7 +73,7 @@ includedir=\${prefix}/include/qt6
 Name: Qt6Widgets
 Description: Static Qt6 Widgets
 Version: 6
-Libs: -L\${libdir} -Wl,--start-group -lQt6Svg -lQt6OpenGL -lQt6Widgets -lQt6Gui -lQt6Network -lQt6Core -Wl,--end-group -Wl,-Bstatic -Wl,--start-group -lpng -lpng16 -ljpeg -lz -lharfbuzz -lfreetype -lbz2 -lbrotlidec -lbrotlicommon -lglib-2.0 -lintl -liconv -lffi -lpcre2-16 -lpcre2-8 -lgraphite2 -lb2 -lssl -lcrypto -lwinpthread -Wl,--end-group -Wl,-Bdynamic -lsynchronization -lmpr -luserenv -lauthz -lkernel32 -lnetapi32 -lntdll -lruntimeobject -lversion -lwinmm -lws2_32 -ld3d11 -ldxgi -ldxguid -ld3d12 -ld3d9 -ladvapi32 -lgdi32 -lole32 -loleaut32 -lshell32 -luser32 -luuid -lusp10 -lrpcrt4 -ldwrite -ld2d1 -ldwmapi -luxtheme -limm32 -lsetupapi -lshlwapi -lwinspool -lwtsapi32 -lshcore -lcomdlg32 -ldnsapi -liphlpapi -lsecur32 -lwinhttp -lcrypt32 -latomic
+Libs: -L\${libdir} -Wl,--start-group -lQt6Svg -lQt6OpenGL -lQt6Widgets -lQt6Gui -lQt6Network -lQt6Core -Wl,--end-group -Wl,-Bstatic -Wl,--start-group -lpng -lpng16 -ljpeg -lz -lharfbuzz -lfreetype -lbz2 -lbrotlidec -lbrotlicommon -lglib-2.0 -lintl -liconv -lffi -lpcre2-16 -lpcre2-8 -lgraphite2 -lb2 -lssl -lcrypto -lwinpthread -lstdc++ -lgcc -lgcc_eh -Wl,--end-group -lsynchronization -lmpr -luserenv -lauthz -lkernel32 -lnetapi32 -lntdll -lruntimeobject -lversion -lwinmm -lws2_32 -ld3d11 -ldxgi -ldxguid -ld3d12 -ld3d9 -ladvapi32 -lgdi32 -lole32 -loleaut32 -lshell32 -luser32 -luuid -lusp10 -lrpcrt4 -ldwrite -ld2d1 -ldwmapi -luxtheme -limm32 -lsetupapi -lshlwapi -lwinspool -lwtsapi32 -lshcore -lcomdlg32 -ldnsapi -liphlpapi -lsecur32 -lwinhttp -lcrypt32 -latomic -Wl,-Bstatic
 Cflags: -I\${includedir}/QtWidgets -I\${includedir}/QtGui -I\${includedir}/QtCore -I\${includedir}/QtSvg -I\${includedir} -I\${prefix}/share/qt6/mkspecs/win32-g++ -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_SVG_LIB -DQT_CORE_LIB -DQT_STATICPLUGIN
 EOF
 
@@ -102,6 +102,8 @@ export CGO_CPPFLAGS="$includes"
 export CGO_CXXFLAGS="-std=c++17 -DQT_STATICPLUGIN $includes"
 # -static makes ld prefer .a over .dll.a. Qt DLLs import the shared GCC
 # runtime, so this flag is only safe once those DLLs are gone.
+# The .pc line stays on -Bstatic through the end. Go appends -lstdc++
+# after it, and a trailing -Bdynamic would pull libstdc++-6.dll.
 export CGO_LDFLAGS="-static -static-libgcc -static-libstdc++"
 # Go's linker allow-list matches ".o" before ".obj", so a path ending in
 # ".cpp.obj" is rejected. Permit the Windows resource objects and plugin
