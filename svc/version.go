@@ -1,20 +1,22 @@
 package svc
 
 import (
-	"fmt"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
 )
 
 // VERSION is the running app version. Bump this for releases.
-const MAJOR = 2
-const MINOR = 9
-const PATCH = 0
+const VERSION = "2.9.0"
 
-var VERSION = fmt.Sprintf("%d.%d.%d", MAJOR, MINOR, PATCH)
+var VERSION_PARTS = strings.Split(VERSION, ".")
+var MAJOR, _ = strconv.Atoi(VERSION_PARTS[0])
+var MINOR, _ = strconv.Atoi(VERSION_PARTS[1])
+var PATCH, _ = strconv.Atoi(VERSION_PARTS[2])
 
 // BUILD is VERSION as an integer (2.6.0 -> 2600).
-const BUILD = MAJOR*10000 + MINOR*1000 + PATCH
+var BUILD = MAJOR*10000 + MINOR*1000 + PATCH
 
 // GitHubRepo is owner/name used for releases and the User-Agent URL.
 const GitHubRepo = "VoxelPrismatic/Rich-Presence-U"
