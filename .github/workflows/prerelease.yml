@@ -93,17 +93,12 @@ jobs:
         run: |
           if [ "${{ runner.os }}" = "Linux" ]; then
             go build -ldflags "-s -w" -o rpqt .
-          else
-            go build -o rpqt .
           fi
           go build -tags portable -o rpqt-portable .
 
       - name: Package
-        run: |
-          cp rpqt "${{ matrix.artifact }}"
-          if [ "${{ runner.os }}" = "macOS" ]; then
-            zip -9 "${{ matrix.upload }}" "${{ matrix.artifact }}"
-          fi
+        if: runner.os != 'macOS'
+        run: cp rpqt "${{ matrix.artifact }}"
 
       - name: Package portable (Linux)
         if: runner.os == 'Linux'
@@ -111,7 +106,7 @@ jobs:
 
       - name: Package portable (macOS)
         if: runner.os == 'macOS'
-        run: bash .github/scripts/pack-macos-portable.sh rpqt-portable 'rich-presence-qt_macOS_(portable).app'
+        run: bash .github/scripts/pack-macos-portable.sh rpqt-portable rich-presence-qt_macOS.app
 
       - uses: actions/upload-artifact@v4
         with:
@@ -124,13 +119,6 @@ jobs:
         with:
           name: rich-presence-qt_linux_(portable)
           path: rich-presence-qt_linux_(portable).AppImage
-          if-no-files-found: error
-
-      - uses: actions/upload-artifact@v4
-        if: runner.os == 'macOS'
-        with:
-          name: rich-presence-qt_macOS_(portable)
-          path: rich-presence-qt_macOS_(portable).app.zip
           if-no-files-found: error
 
   build-windows:
@@ -224,8 +212,7 @@ jobs:
           NOTES="Pre-release ${TAG} from ${GITHUB_SHA}."$'\n\n'
           NOTES+="- \`rich-presence-qt_linux\` — Linux x86_64"$'\n'
           NOTES+="- \`rich-presence-qt_linux_(portable).AppImage\` — Linux x86_64 (bundled Qt)"$'\n'
-          NOTES+="- \`rich-presence-qt_macOS.app.zip\` — macOS (Apple Silicon)"$'\n'
-          NOTES+="- \`rich-presence-qt_macOS_(portable).app.zip\` — macOS app bundle (bundled Qt)"$'\n'
+          NOTES+="- \`rich-presence-qt_macOS.app.zip\` — macOS app (Qt is inside the bundle)"$'\n'
           NOTES+="- \`rich-presence-qt_windows.zip\` — Windows x86_64"$'\n'
           NOTES+="- \`rich-presence-qt_windows_(portable).zip\` — Windows x86_64 (\`rich-presence-qt_windows_(portable).exe\` + Qt DLLs + MinGW runtime, including libgcc)"
           gh release create "$TAG" \
@@ -235,7 +222,6 @@ jobs:
             dist/rich-presence-qt_linux \
             "dist/rich-presence-qt_linux_(portable).AppImage" \
             dist/rich-presence-qt_macOS.app.zip \
-            "dist/rich-presence-qt_macOS_(portable).app.zip" \
             dist/rich-presence-qt_windows.zip \
             "dist/rich-presence-qt_windows_(portable).zip" \
             logo.png rich-presence-u.desktop
