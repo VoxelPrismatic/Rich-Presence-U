@@ -34,6 +34,7 @@ var EnUS = map[string]string{
 	"IGDB_TEST_FAIL":          "Could not connect to IGDB.\n\nCheck the Client ID and Client Secret.",
 	"IGDB_CONSOLE":            "Open Twitch developer console",
 	"IGDB_HINT":               "To search games on IGDB, register a free Twitch application (Client Type: Confidential, OAuth Redirect URL: http://localhost) and paste the Client ID and Client Secret here. Two-factor authentication is required.",
+	"IGDB_INSTRUCTIONS":       igdbInstructions,
 	"GAME_HINT_CUSTOM":        "Custom entry. The typed text will be used as a title in your status.",
 	"GAME_HINT_NONE":          "You have not selected a game. Only your console name will be displayed.",
 	"GAME_HINT_RECENT":        "Recent games",
@@ -71,7 +72,7 @@ var EnUS = map[string]string{
 	"REFRESHING_STEP_2":       "Downloading files...\nAlmost there.",
 	"REGION_EU":               "Europe",
 	"REGION_JP":               "Japan",
-	"REGION_TITLE":            "Preferred region",
+	"REGION_TITLE":            "Preferred store region",
 	"REGION_US":               "Americas",
 	"RENAME_DEFAULT":          "Default",
 	"RENAME_HINT":             "Any text typed in this field will take priority over the specified region title.",
@@ -95,6 +96,9 @@ var EnUS = map[string]string{
 	"SEARCH_BUTTON_HINT":      "Allows other people to quickly search for the game you are currently playing.",
 	"SEARCH_BUTTON_TITLE":     "Search button on status",
 	"SEARCH_BUTTON_TEXT":      "Learn more about this game",
+	"SETTINGS_LOCALIZATION":   "Localization",
+	"SETTINGS_PRESENCE":       "Rich Presence",
+	"SETTINGS_GAME_SEARCH":    "Game Search",
 	"SETTINGS_TITLE":          "Settings",
 	"STATUS_APPLIED":          "No pending changes",
 	"STATUS_APPLY":            "Apply status on Discord",
@@ -156,3 +160,21 @@ var EnUS = map[string]string{
 	"TAG_PLACEHOLDER_SW":      "SW-0000-0000-0000",
 	"TAG_PLACEHOLDER_FC":      "FC: 0000-0000-0000",
 }
+
+// igdbInstructions is the IGDB account-creation guide, with the same links as
+// https://api-docs.igdb.com/#account-creation
+const igdbInstructions = `<p><a href="https://api-docs.igdb.com/#account-creation">Account Creation</a></p>
+<p>In order to use the search games feature, you must have a Twitch account. Game Search is provided by IGDB.</p>
+<ol>
+<li>Sign Up with <a href="https://dev.twitch.tv/login">Twitch</a> for a free account</li>
+<li>Ensure you have Two Factor Authentication <a href="https://www.twitch.tv/settings/security">enabled</a></li>
+<li>Register your application in the <a href="https://dev.twitch.tv/console/apps/create">Twitch Developer Portal</a>
+<ul>
+<li>The OAuth Redirect URL field is not used by IGDB. Please add ’localhost’ to continue.</li>
+<li>The Client Type must be set to <b>Confidential</b> to generate Client Secrets</li>
+</ul>
+</li>
+<li><a href="https://dev.twitch.tv/console/apps">Manage</a> your newly created application</li>
+<li>Generate a Client Secret by pressing [New Secret]</li>
+<li>Take note of the Client ID and Client Secret</li>
+</ol>`

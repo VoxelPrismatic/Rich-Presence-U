@@ -24,10 +24,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 	head.AddStretch()
 	box.AddLayout(head.QLayout)
 
-	form := qt6.NewQWidget2()
-	g := newFormGrid(form)
-	row := 0
-
+	_, locLay := newSettingsPane(a.tr.T("SETTINGS_LOCALIZATION"))
 	a.langCombo = qt6.NewQComboBox2()
 	a.langCombo.AddItem3(a.tr.T("LANGUAGE_AUTO"), qt6.NewQVariant11(""))
 	for _, code := range localeCodes() {
@@ -40,8 +37,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 		a.settings.Language = a.langCombo.ItemData(i).ToString()
 		a.tr.Set(a.settings.Language)
 	})
-	addFormRow(g, row, a.tr.T("LANGUAGE_TITLE"), a.langCombo.QWidget, nil)
-	row++
+	addSettingsField(locLay, a.tr.T("LANGUAGE_TITLE"), a.langCombo.QWidget, nil)
 
 	a.prefRegion = qt6.NewQComboBox2()
 	a.prefRegion.AddItem3(a.tr.T("REGION_US"), qt6.NewQVariant11("US"))
@@ -58,17 +54,16 @@ func (a *App) buildSettings() *qt6.QWidget {
 			a.updateApply()
 		}
 	})
-	addFormRow(g, row, a.tr.T("REGION_TITLE"), a.prefRegion.QWidget, nil)
-	row++
+	addSettingsField(locLay, a.tr.T("REGION_TITLE"), a.prefRegion.QWidget, nil)
 
+	_, presLay := newSettingsPane(a.tr.T("SETTINGS_PRESENCE"))
 	a.autoConn = qt6.NewQCheckBox2()
 	a.autoConn.OnToggled(func(on bool) {
 		if !a.silent {
 			a.settings.AutoConnect = on
 		}
 	})
-	addFormRow(g, row, a.tr.T("AUTOCONNECT_TITLE"), a.autoConn.QWidget, helpButton(a.tr.T("AUTOCONNECT_HINT")))
-	row++
+	addSettingsCheck(presLay, a.tr.T("AUTOCONNECT_TITLE"), a.autoConn, helpButton(a.tr.T("AUTOCONNECT_HINT")))
 
 	a.keepOn = qt6.NewQCheckBox2()
 	a.keepOn.OnToggled(func(on bool) {
@@ -77,8 +72,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 			a.refreshScreensaver()
 		}
 	})
-	addFormRow(g, row, a.tr.T("KEEPON_TITLE"), a.keepOn.QWidget, helpButton(a.tr.T("KEEPON_HINT")))
-	row++
+	addSettingsCheck(presLay, a.tr.T("KEEPON_TITLE"), a.keepOn, helpButton(a.tr.T("KEEPON_HINT")))
 
 	a.debugOn = qt6.NewQCheckBox2()
 	a.debugOn.OnToggled(func(on bool) {
@@ -87,39 +81,13 @@ func (a *App) buildSettings() *qt6.QWidget {
 			a.log.SetEnabled(on)
 		}
 	})
-	addFormRow(g, row, a.tr.T("DEBUG_TITLE"), a.debugOn.QWidget, helpButton(a.tr.T("DEBUG_HINT")))
-	row++
-
-	igdbWrap := qt6.NewQWidget2()
-	igdbLay := qt6.NewQVBoxLayout(igdbWrap)
-	igdbLay.SetContentsMargins(0, 0, 0, 0)
-	igdbLay.SetSpacing(4)
-	a.igdbID = qt6.NewQLineEdit2()
-	a.igdbID.SetPlaceholderText(a.tr.T("IGDB_CLIENT_ID"))
-	a.igdbID.OnEditingFinished(func() { a.saveIGDBCredentials() })
-	a.igdbSecret = qt6.NewQLineEdit2()
-	a.igdbSecret.SetPlaceholderText(a.tr.T("IGDB_CLIENT_SECRET"))
-	a.igdbSecret.SetEchoMode(qt6.QLineEdit__Password)
-	a.igdbSecret.OnEditingFinished(func() { a.saveIGDBCredentials() })
-	igdbBtns := qt6.NewQHBoxLayout2()
-	igdbBtns.SetContentsMargins(0, 0, 0, 0)
-	testBtn := qt6.NewQPushButton3(a.tr.T("IGDB_TEST"))
-	testBtn.OnClicked(func() { a.testIGDB() })
-	consoleBtn := qt6.NewQPushButton3(a.tr.T("IGDB_CONSOLE"))
-	consoleBtn.OnClicked(func() { openURL("https://dev.twitch.tv/console/apps") })
-	igdbBtns.AddWidget(testBtn.QWidget)
-	igdbBtns.AddWidget(consoleBtn.QWidget)
-	igdbBtns.AddStretch()
-	igdbLay.AddWidget(a.igdbID.QWidget)
-	igdbLay.AddWidget(a.igdbSecret.QWidget)
-	igdbLay.AddLayout(igdbBtns.QLayout)
-	addFormRow(g, row, a.tr.T("IGDB_TITLE"), igdbWrap, helpButton(a.tr.T("IGDB_HINT")))
-	row++
+	addSettingsCheck(presLay, a.tr.T("DEBUG_TITLE"), a.debugOn, helpButton(a.tr.T("DEBUG_HINT")))
 
 	dataWrap := qt6.NewQWidget2()
 	dw := qt6.NewQHBoxLayout(dataWrap)
 	dw.SetContentsMargins(0, 0, 0, 0)
 	a.dataCombo = qt6.NewQComboBox2()
+	a.dataCombo.SetSizePolicy2(qt6.QSizePolicy__Expanding, qt6.QSizePolicy__Fixed)
 	a.dataCombo.AddItem4(iconNamed("action-unavailable", "action-unavailable-symbolic"), a.tr.T("DATA_SELECT"), qt6.NewQVariant11(""))
 	a.dataCombo.AddItem4(iconNamed("edit-clear-history", "edit-clear-history"), a.tr.T("RESET_CACHE_TITLE"), qt6.NewQVariant11("cache"))
 	a.dataCombo.AddItem4(iconNamed("user-trash", "albumfolder-user-trash"), a.tr.T("RESET_ALL_TITLE"), qt6.NewQVariant11("all"))
@@ -129,18 +97,118 @@ func (a *App) buildSettings() *qt6.QWidget {
 		a.dataBtn.SetIcon(a.dataCombo.ItemIcon(i))
 	})
 	a.dataBtn.OnClicked(func() { a.onDataAction() })
-	dw.AddWidget(a.dataCombo.QWidget)
+	dw.AddWidget2(a.dataCombo.QWidget, 1)
 	dw.AddWidget(a.dataBtn.QWidget)
-	dw.AddStretch()
-	addFormRow(g, row, a.tr.T("DATA_TITLE"), dataWrap, helpButton(a.tr.T("DATA_HINT")))
+	addSettingsField(presLay, a.tr.T("DATA_TITLE"), dataWrap, helpButton(a.tr.T("DATA_HINT")))
 
-	box.AddWidget(form)
-	box.AddWidget(hline().QWidget)
-	box.AddWidget(a.buildAboutTable())
-	box.AddStretch()
+	_, igdbLay := newSettingsPane(a.tr.T("SETTINGS_GAME_SEARCH"))
+	steps := linkLabel(a.tr.T("IGDB_INSTRUCTIONS"))
+	steps.SetWordWrap(true)
+	steps.SetAlignment(qt6.AlignLeft | qt6.AlignTop)
+	igdbLay.AddWidget(steps.QWidget)
+	a.igdbID = qt6.NewQLineEdit2()
+	a.igdbID.SetPlaceholderText(a.tr.T("IGDB_CLIENT_ID"))
+	a.igdbID.OnEditingFinished(func() { a.saveIGDBCredentials() })
+	a.igdbSecret = qt6.NewQLineEdit2()
+	a.igdbSecret.SetPlaceholderText(a.tr.T("IGDB_CLIENT_SECRET"))
+	a.igdbSecret.SetEchoMode(qt6.QLineEdit__Password)
+	a.igdbSecret.OnEditingFinished(func() { a.saveIGDBCredentials() })
+	igdbLay.AddWidget(a.igdbID.QWidget)
+	igdbLay.AddWidget(a.igdbSecret.QWidget)
+	igdbBtns := qt6.NewQHBoxLayout2()
+	igdbBtns.SetContentsMargins(0, 0, 0, 0)
+	testBtn := qt6.NewQPushButton3(a.tr.T("IGDB_TEST"))
+	testBtn.OnClicked(func() { a.testIGDB() })
+	consoleBtn := qt6.NewQPushButton3(a.tr.T("IGDB_CONSOLE"))
+	consoleBtn.OnClicked(func() { openURL("https://dev.twitch.tv/console/apps") })
+	igdbBtns.AddWidget(testBtn.QWidget)
+	igdbBtns.AddWidget(consoleBtn.QWidget)
+	igdbBtns.AddStretch()
+	igdbLay.AddLayout(igdbBtns.QLayout)
+
+	_, creditsLay := newSettingsPane(a.tr.T("ABOUT_CREDITS"))
+	creditsLay.AddWidget(a.buildAboutTable())
+
+	locLay.AddStretch()
+	presLay.AddStretch()
+	igdbLay.AddStretch()
+	creditsLay.AddStretch()
+
+	names := []string{
+		a.tr.T("SETTINGS_LOCALIZATION"),
+		a.tr.T("SETTINGS_PRESENCE"),
+		a.tr.T("SETTINGS_GAME_SEARCH"),
+		a.tr.T("ABOUT_CREDITS"),
+	}
+	panes := []*qt6.QVBoxLayout{locLay, presLay, igdbLay, creditsLay}
+	list := qt6.NewQListWidget2()
+	list.SetFixedWidth(220)
+	list.SetHorizontalScrollBarPolicy(qt6.ScrollBarAlwaysOff)
+	list.SetSizePolicy2(qt6.QSizePolicy__Fixed, qt6.QSizePolicy__Expanding)
+	pages := qt6.NewQStackedWidget2()
+	for i, name := range names {
+		list.AddItem(name)
+		pages.AddWidget(settingsScroll(panes[i]).QWidget)
+	}
+	list.SetCurrentRow(0)
+	list.OnCurrentRowChanged(func(row int) {
+		if row >= 0 {
+			pages.SetCurrentIndex(row)
+		}
+	})
+
+	split := qt6.NewQHBoxLayout2()
+	split.SetContentsMargins(0, 0, 0, 0)
+	split.SetSpacing(12)
+	split.AddWidget(list.QWidget)
+	split.AddWidget2(pages.QWidget, 1)
+	box.AddLayout2(split.QLayout, 1)
 
 	a.fillAboutLinks()
 	return page
+}
+
+func newSettingsPane(title string) (*qt6.QWidget, *qt6.QVBoxLayout) {
+	w := qt6.NewQWidget2()
+	lay := qt6.NewQVBoxLayout(w)
+	lay.SetContentsMargins(12, 4, 8, 8)
+	lay.SetSpacing(8)
+	head := qt6.NewQLabel3(title)
+	setBigFont(head.QWidget, 2)
+	lay.AddWidget(head.QWidget)
+	return w, lay
+}
+
+func settingsScroll(lay *qt6.QVBoxLayout) *qt6.QScrollArea {
+	scroll := qt6.NewQScrollArea2()
+	scroll.SetWidgetResizable(true)
+	scroll.SetFrameShape(qt6.QFrame__NoFrame)
+	scroll.SetWidget(lay.ParentWidget())
+	return scroll
+}
+
+func addSettingsField(parent *qt6.QVBoxLayout, title string, control *qt6.QWidget, help *qt6.QToolButton) {
+	row := qt6.NewQHBoxLayout2()
+	row.SetContentsMargins(0, 0, 0, 0)
+	row.AddWidget(qt6.NewQLabel3(title).QWidget)
+	if help != nil {
+		row.AddWidget(help.QWidget)
+	}
+	row.AddStretch()
+	parent.AddLayout(row.QLayout)
+	parent.AddWidget(control)
+}
+
+func addSettingsCheck(parent *qt6.QVBoxLayout, title string, box *qt6.QCheckBox, help *qt6.QToolButton) {
+	box.SetText(title)
+	row := qt6.NewQHBoxLayout2()
+	row.SetContentsMargins(0, 0, 0, 0)
+	row.AddWidget(box.QWidget)
+	if help != nil {
+		row.AddWidget(help.QWidget)
+	}
+	row.AddStretch()
+	parent.AddLayout(row.QLayout)
 }
 
 func (a *App) buildAboutTable() *qt6.QWidget {
