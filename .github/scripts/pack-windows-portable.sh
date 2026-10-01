@@ -103,6 +103,10 @@ export CGO_CXXFLAGS="-std=c++17 -DQT_STATICPLUGIN $includes"
 # -static makes ld prefer .a over .dll.a. Qt DLLs import the shared GCC
 # runtime, so this flag is only safe once those DLLs are gone.
 export CGO_LDFLAGS="-static -static-libgcc -static-libstdc++"
+# Go's linker allow-list matches ".o" before ".obj", so a path ending in
+# ".cpp.obj" is rejected. Permit the Windows resource objects and plugin
+# archives this script writes into #cgo LDFLAGS.
+export CGO_LDFLAGS_ALLOW='^[A-Za-z]:/.*\.(obj|a)$'
 out_win="$(win "$out")"
 
 mkdir -p "$(dirname "$out")"
