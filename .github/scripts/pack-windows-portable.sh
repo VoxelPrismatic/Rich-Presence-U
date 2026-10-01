@@ -13,6 +13,7 @@ lib="$prefix/lib"
 plug="$prefix/share/qt6/plugins"
 
 export PATH="/ucrt64/bin:${PATH:-}"
+bash "$root/.github/scripts/winres.sh"
 
 need=(
   "$lib/libQt6Widgets.a"

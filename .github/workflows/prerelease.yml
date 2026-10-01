@@ -170,6 +170,7 @@ jobs:
           spec="$(cygpath -m /ucrt64/share/qt6/mkspecs/win32-g++)"
           export CGO_CPPFLAGS="-I${qti}/QtWidgets -I${qti}/QtGui -I${qti}/QtCore -I${qti}/QtSvg -I${qti} -I${spec}"
           export CGO_CXXFLAGS="$CGO_CPPFLAGS"
+          bash .github/scripts/winres.sh
           go build -ldflags "-s -w -H windowsgui" -o rich-presence-qt_windows.exe .
           mkdir dist-win
           bash .github/scripts/pack-windows-portable.sh "$PWD/dist-win/rich-presence-qt_windows_(portable).exe"

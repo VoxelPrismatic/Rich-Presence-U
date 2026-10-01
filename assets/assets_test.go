@@ -11,9 +11,16 @@ func TestBreezeDir(t *testing.T) {
 	if root == "" {
 		t.Fatal("empty")
 	}
-	p := filepath.Join(root, "actions", "checkmark.svg")
-	st, err := os.Stat(p)
-	if err != nil || st.Size() == 0 {
-		t.Fatalf("%s: %v", p, err)
+	for _, name := range []string{
+		"checkmark.svg",
+		"player-time.svg",
+		"chronometer.svg",
+		"view-refresh.svg",
+	} {
+		p := filepath.Join(root, "actions", name)
+		st, err := os.Stat(p)
+		if err != nil || st.Size() == 0 {
+			t.Fatalf("%s: %v", p, err)
+		}
 	}
 }

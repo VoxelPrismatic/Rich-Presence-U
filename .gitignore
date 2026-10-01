@@ -9,3 +9,5 @@ Godot_*
 *.pck
 *.x86_64
 libunixsocket.so
+ui/static_link_windows.go
+/rsrc_windows_amd64.syso
