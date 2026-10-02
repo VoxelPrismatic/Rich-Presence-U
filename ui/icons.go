@@ -4,16 +4,6 @@ import (
 	"github.com/mappu/miqt/qt6"
 )
 
-func themeIcon(names ...string) *qt6.QIcon {
-	for _, name := range names {
-		ic := qt6.QIcon_FromTheme(name)
-		if ic != nil && !ic.IsNull() {
-			return ic
-		}
-	}
-	return qt6.NewQIcon()
-}
-
 func fileIcon(path string) *qt6.QIcon {
 	ic := qt6.NewQIcon4(path)
 	if ic != nil && !ic.IsNull() {
@@ -22,12 +12,7 @@ func fileIcon(path string) *qt6.QIcon {
 	return qt6.NewQIcon()
 }
 
-func pickIcon(kind, name string, themeNames ...string) *qt6.QIcon {
-	if useSystemIcons() {
-		if ic := themeIcon(themeNames...); !ic.IsNull() {
-			return ic
-		}
-	}
+func pickIcon(kind, name string, _ ...string) *qt6.QIcon {
 	return fileIcon(iconFile(kind, name))
 }
 

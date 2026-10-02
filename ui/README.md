@@ -26,7 +26,7 @@ i'm not fond of the original UI, so I want to make it mirror the discord UI a bi
         - Option: Europe
         - Option: Japan
     - qt: hbox
-      - qt: icon "folder-public" /usr/share/icons/breeze/places/16/folder-public.svg
+      - qt: icon "folder-public" assets/breeze/places/folder-public.svg
       - qt: drop down
         - title: Short description
         - option: (Friend code) (use actual friend code string)
@@ -41,7 +41,7 @@ i'm not fond of the original UI, so I want to make it mirror the discord UI a bi
         - qt: label "of"
         - qt: number with scroller
     - qt: hbox
-      - qt: icon "folder-games" /usr/share/icons/breeze/places/16/folder-games.svg
+      - qt: icon "folder-games" assets/breeze/places/folder-games.svg
       - qt: label "12:34"
 - settings screen: qt vbox
   - qt: hbox
@@ -60,7 +60,7 @@ i'm not fond of the original UI, so I want to make it mirror the discord UI a bi
     - qt: label "Check for new titles"
     - qt: spacer
     - qt: button (refresh)
-      - icon: "view refresh" /usr/share/icons/breeze/actions/16/view-refresh.svg
+      - icon: "view refresh" assets/breeze/actions/view-refresh.svg
     - qt: drop down
       - Every 12 hours
       - Every day
@@ -94,9 +94,9 @@ i'm not fond of the original UI, so I want to make it mirror the discord UI a bi
       - option: Clear cache
       - option: Reset all data
     - qt: button
-      - icon for "Select one" - "action-unavailable-symbolic" /usr/share/icons/breeze/actions/16/action-unavailable-symbolic.svg
-      - icon for "Clear cache" - "edit-clear-history" /usr/share/icons/breeze/actions/16/edit-clear-history.svg
-      - icon for "Reset all data" - "albumfolder-user-trash" /usr/share/icons/breeze/actions/16/albumfolder-user-trash.svg
+      - icon for "Select one" - "action-unavailable-symbolic" assets/breeze/actions/action-unavailable-symbolic.svg
+      - icon for "Clear cache" - "edit-clear-history" assets/breeze/actions/edit-clear-history.svg
+      - icon for "Reset all data" - "albumfolder-user-trash" assets/breeze/actions/albumfolder-user-trash.svg
   - qt: separator
   - qt: table
     - Version | (n) (link to changelog)
@@ -138,29 +138,29 @@ i'm not fond of the original UI, so I want to make it mirror the discord UI a bi
     - qt: spacer
     - qt: button
       - disconnected from discord
-        - icon: "network-disconnected" /usr/share/icons/breeze/actions/16/network-disconnect.svg
+        - icon: "network-disconnected" assets/breeze/actions/network-disconnect.svg
         - title: "Connect to Discord"
       - connecting to discord
         - disabled
-        - icon: "network-connect" /usr/share/icons/breeze/actions/16/network-connect.svg
+        - icon: "network-connect" assets/breeze/actions/network-connect.svg
         - title "Connecting to Discord..."
       - no changes to apply
         - disabled
-        - icon: "checkmark" /usr/share/icons/breeze/actions/16/checkmark.svg
+        - icon: "checkmark" assets/breeze/actions/checkmark.svg
         - title "No pending changes"
       - changes pending
-        - icon: "document-save" /usr/share/icons/breeze/actions/16/document-save.svg
+        - icon: "document-save" assets/breeze/actions/document-save.svg
         - title "Apply status on Discord"
     - qt: button
-      - icon: "chronometer" /usr/share/icons/breeze/actions/16/chronometer.svg
+      - icon: "chronometer" assets/breeze/actions/chronometer.svg
       - title "Status duration"
     - qt: button
       - visibility enabled
-        - icon: "view-visible" /usr/share/icons/breeze/actions/16/view-visible.svg
+        - icon: "view-visible" assets/breeze/actions/view-visible.svg
         - title "Status enabled"
       - visibility disabled
-        - icon: "view-visible-off" /usr/share/icons/breeze/actions/16/view-visible-off.svg
+        - icon: "view-visible-off" assets/breeze/actions/view-visible-off.svg
         - title "Status disabled"
     - qt: button
-      - icon: "configure" /usr/share/icons/breeze/actions/16/configure.svg
+      - icon: "configure" assets/breeze/actions/configure.svg
       - title "Configure"
