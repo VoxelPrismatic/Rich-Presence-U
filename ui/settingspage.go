@@ -63,17 +63,32 @@ func (a *App) buildSettings() *qt6.QWidget {
 	_, presLay := newSettingsPane(a.tr.T("SETTINGS_PRESENCE"))
 	presForm := settingsForm(presLay)
 	a.autoConn = qt6.NewQComboBox2()
-	a.autoConn.AddItem3(a.tr.T("AUTOCONNECT_NEVER"), qt6.NewQVariant11(string(connectNever)))
-	a.autoConn.AddItem3(a.tr.T("AUTOCONNECT_STARTUP"), qt6.NewQVariant11(string(connectStartup)))
-	a.autoConn.AddItem3(a.tr.T("AUTOCONNECT_POLL"), qt6.NewQVariant11(string(connectPoll)))
+	addAutoConnectItem(a.autoConn, a.tr.T("AUTOCONNECT_NEVER"), string(connectNever), a.tr.T("AUTOCONNECT_HINT_NEVER"))
+	addAutoConnectItem(a.autoConn, a.tr.T("AUTOCONNECT_STARTUP"), string(connectStartup), a.tr.T("AUTOCONNECT_HINT_STARTUP"))
+	addAutoConnectItem(a.autoConn, a.tr.T("AUTOCONNECT_POLL"), string(connectPoll), a.tr.T("AUTOCONNECT_HINT_POLL"))
+	if view := a.autoConn.View(); view != nil {
+		view.SetMouseTracking(true)
+	}
+	a.autoConnHelp = a.helpButton("")
 	a.autoConn.OnCurrentIndexChanged(func(i int) {
+		a.refreshAutoConnectHint()
 		if a.silent {
 			return
 		}
 		a.settings.AutoConnect = connectMode(a.autoConn.ItemData(i).ToString())
 		a.syncConnectPoll()
 	})
-	addFormRow(presForm, 0, a.tr.T("AUTOCONNECT_TITLE"), a.autoConn.QWidget, a.helpButton(a.tr.T("AUTOCONNECT_HINT")))
+	a.autoConn.OnHighlighted(func(i int) {
+		if i < 0 {
+			return
+		}
+		a.autoConn.SetToolTip(a.tr.T(autoConnectHint(connectMode(a.autoConn.ItemData(i).ToString()))))
+	})
+	a.autoConn.OnHidePopup(func(super func()) {
+		super()
+		a.refreshAutoConnectHint()
+	})
+	addFormRow(presForm, 0, a.tr.T("AUTOCONNECT_TITLE"), a.autoConn.QWidget, a.autoConnHelp)
 
 	a.keepOn = qt6.NewQCheckBox2()
 	a.keepOn.OnToggled(func(on bool) {
@@ -93,6 +108,25 @@ func (a *App) buildSettings() *qt6.QWidget {
 	})
 	addFormRow(presForm, 2, a.tr.T("DEBUG_TITLE"), a.debugOn.QWidget, a.helpButton(a.tr.T("DEBUG_HINT")))
 
+	hideWrap := qt6.NewQWidget2()
+	hideLay := qt6.NewQVBoxLayout(hideWrap)
+	hideLay.SetContentsMargins(0, 0, 0, 0)
+	hideLay.SetSpacing(2)
+	a.hidePause = qt6.NewQCheckBox4(a.tr.T("HIDE_PAUSE"), hideWrap)
+	a.hideDiscord = qt6.NewQCheckBox4(a.tr.T("HIDE_DISCORD"), hideWrap)
+	a.autoUnhide = qt6.NewQCheckBox4(a.tr.T("HIDE_AUTO_UNHIDE"), hideWrap)
+	a.hidePause.OnToggled(func(on bool) { a.setPauseTimer(on) })
+	a.hideDiscord.OnToggled(func(on bool) { a.setHideDiscord(on) })
+	a.autoUnhide.OnToggled(func(on bool) {
+		if !a.silent {
+			a.settings.AutoUnhide = on
+		}
+	})
+	hideLay.AddWidget(a.hidePause.QWidget)
+	hideLay.AddWidget(a.hideDiscord.QWidget)
+	hideLay.AddWidget(a.autoUnhide.QWidget)
+	addFormRow(presForm, 3, a.tr.T("HIDE_BEHAVIOR"), hideWrap, nil)
+
 	dataWrap := qt6.NewQWidget2()
 	dw := qt6.NewQHBoxLayout(dataWrap)
 	dw.SetContentsMargins(0, 0, 0, 0)
@@ -109,34 +143,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 	dw.AddWidget(a.dataCombo.QWidget)
 	dw.AddWidget(a.dataBtn.QWidget)
 	dw.AddStretch()
-	addFormRow(presForm, 3, a.tr.T("DATA_TITLE"), dataWrap, a.helpButton(a.tr.T("DATA_HINT")))
-
-	hideWrap := qt6.NewQWidget2()
-	hideLay := qt6.NewQVBoxLayout(hideWrap)
-	hideLay.SetContentsMargins(0, 0, 0, 0)
-	hideLay.SetSpacing(2)
-	a.hidePause = qt6.NewQRadioButton4(a.tr.T("HIDE_PAUSE"), hideWrap)
-	a.hideDiscord = qt6.NewQRadioButton4(a.tr.T("HIDE_DISCORD"), hideWrap)
-	a.hidePause.OnToggled(func(on bool) {
-		if on {
-			a.setHideBehavior(hidePause)
-		}
-	})
-	a.hideDiscord.OnToggled(func(on bool) {
-		if on {
-			a.setHideBehavior(hideDiscord)
-		}
-	})
-	a.autoUnhide = qt6.NewQCheckBox4(a.tr.T("HIDE_AUTO_UNHIDE"), hideWrap)
-	a.autoUnhide.OnToggled(func(on bool) {
-		if !a.silent {
-			a.settings.AutoUnhide = on
-		}
-	})
-	hideLay.AddWidget(a.hidePause.QWidget)
-	hideLay.AddWidget(a.hideDiscord.QWidget)
-	hideLay.AddWidget(a.autoUnhide.QWidget)
-	addFormRow(presForm, 4, a.tr.T("HIDE_BEHAVIOR"), hideWrap, nil)
+	addFormRow(presForm, 4, a.tr.T("DATA_TITLE"), dataWrap, a.helpButton(a.tr.T("DATA_HINT")))
 
 	_, igdbLay := newSettingsPane(a.tr.T("SETTINGS_GAME_SEARCH"))
 	intro := qt6.NewQLabel3(a.tr.T("IGDB_INTRO"))
@@ -205,6 +212,23 @@ func (a *App) buildSettings() *qt6.QWidget {
 
 	a.fillAboutLinks()
 	return page
+}
+
+func addAutoConnectItem(combo *qt6.QComboBox, label, value, hint string) {
+	combo.AddItem3(label, qt6.NewQVariant11(value))
+	combo.SetItemData2(combo.Count()-1, qt6.NewQVariant11(hint), int(qt6.ToolTipRole))
+}
+
+func (a *App) refreshAutoConnectHint() {
+	if a.autoConn == nil {
+		return
+	}
+	mode := connectMode(a.autoConn.ItemData(a.autoConn.CurrentIndex()).ToString())
+	tip := a.tr.T(autoConnectHint(mode))
+	a.autoConn.SetToolTip(tip)
+	if a.autoConnHelp != nil {
+		a.autoConnHelp.SetToolTip(tip)
+	}
 }
 
 func newSettingsPane(title string) (*qt6.QWidget, *qt6.QVBoxLayout) {
@@ -305,16 +329,16 @@ func (a *App) loadSettingsIntoUI() {
 	a.selectComboData(a.autoConn, string(a.settings.AutoConnect))
 	a.keepOn.SetChecked(a.settings.KeepOn)
 	a.debugOn.SetChecked(a.settings.DebugLog)
-	if a.hidePause != nil && a.hideDiscord != nil {
-		if a.settings.pausesTimer() {
-			a.hidePause.SetChecked(true)
-		} else {
-			a.hideDiscord.SetChecked(true)
-		}
+	if a.hidePause != nil {
+		a.hidePause.SetChecked(a.settings.PauseTimer)
+	}
+	if a.hideDiscord != nil {
+		a.hideDiscord.SetChecked(a.settings.HideDiscord)
 	}
 	if a.autoUnhide != nil {
 		a.autoUnhide.SetChecked(a.settings.AutoUnhide)
 	}
+	a.refreshAutoConnectHint()
 	if a.igdbID != nil {
 		a.igdbID.SetText(a.settings.IGDBClientID)
 	}

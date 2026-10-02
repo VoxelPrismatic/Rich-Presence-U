@@ -86,8 +86,9 @@ type App struct {
 	connectGen   int
 	keepOn       *qt6.QCheckBox
 	debugOn      *qt6.QCheckBox
-	hidePause    *qt6.QRadioButton
-	hideDiscord  *qt6.QRadioButton
+	autoConnHelp *qt6.QToolButton
+	hidePause    *qt6.QCheckBox
+	hideDiscord  *qt6.QCheckBox
 	autoUnhide   *qt6.QCheckBox
 	igdbID       *qt6.QLineEdit
 	igdbSecret   *qt6.QLineEdit
@@ -286,7 +287,7 @@ func (a *App) statusApplied() bool {
 	if a.fingerprint() == a.applied {
 		return true
 	}
-	return a.settings.pausesTimer() && a.clockStatusApplied()
+	return a.settings.PauseTimer && a.clockStatusApplied()
 }
 
 func (a *App) persist() {

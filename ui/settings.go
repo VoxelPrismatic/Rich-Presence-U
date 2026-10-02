@@ -23,7 +23,8 @@ type Settings struct {
 	KeepOn           bool        `json:"keep_on"`
 	DebugLog         bool        `json:"debug_log"`
 	Activity         bool        `json:"activity"`
-	HideBehavior     string      `json:"hide_behavior,omitempty"`
+	PauseTimer       bool        `json:"pause_timer"`
+	HideDiscord      bool        `json:"hide_discord"`
 	AutoUnhide       bool        `json:"auto_unhide,omitempty"`
 	Region           nso.Region  `json:"region"`
 	WindowW          int         `json:"window_w"`
@@ -62,17 +63,17 @@ type prefsFile struct {
 
 func defaultSettings() Settings {
 	return Settings{
-		System:       nso.HAC,
-		Platform:     "NS1",
-		Refresh:      604800,
-		KeepOn:       true,
-		DebugLog:     true,
-		Activity:     true,
-		AutoConnect:  connectNever,
-		HideBehavior: hideDiscord,
-		Region:       nso.US,
-		WindowW:      560,
-		WindowH:      640,
+		System:      nso.HAC,
+		Platform:    "NS1",
+		Refresh:     604800,
+		KeepOn:      true,
+		DebugLog:    true,
+		Activity:    true,
+		AutoConnect: connectNever,
+		HideDiscord: true,
+		Region:      nso.US,
+		WindowW:     560,
+		WindowH:     640,
 	}
 }
 
@@ -110,6 +111,7 @@ func loadPrefs(dir string) (Settings, map[string]*SystemState) {
 		return normalizeSettings(s), systems
 	}
 	s = pf.Settings
+	applyLegacyHide(&s, b)
 	for key, st := range pf.Platforms {
 		slug := platformKey(key)
 		if slug == "" {
@@ -161,9 +163,6 @@ func normalizeSettings(s Settings) Settings {
 	if !s.Region.Valid() {
 		s.Region = nso.US
 	}
-	if s.HideBehavior != hidePause {
-		s.HideBehavior = hideDiscord
-	}
 	switch s.AutoConnect {
 	case connectNever, connectStartup, connectPoll:
 	default:
@@ -199,13 +198,38 @@ func (m *connectMode) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-const (
-	hidePause   = "pause"
-	hideDiscord = "discord"
-)
+func autoConnectHint(mode connectMode) string {
+	switch mode {
+	case connectStartup:
+		return "AUTOCONNECT_HINT_STARTUP"
+	case connectPoll:
+		return "AUTOCONNECT_HINT_POLL"
+	default:
+		return "AUTOCONNECT_HINT_NEVER"
+	}
+}
 
-func (s Settings) pausesTimer() bool {
-	return s.HideBehavior == hidePause
+// applyLegacyHide maps the old hide_behavior string onto the checkboxes when
+// a prefs file has neither pause_timer nor hide_discord.
+func applyLegacyHide(s *Settings, raw []byte) {
+	var probe struct {
+		PauseTimer   *bool  `json:"pause_timer"`
+		HideDiscord  *bool  `json:"hide_discord"`
+		HideBehavior string `json:"hide_behavior"`
+	}
+	if json.Unmarshal(raw, &probe) != nil {
+		return
+	}
+	if probe.PauseTimer != nil || probe.HideDiscord != nil {
+		return
+	}
+	if probe.HideBehavior == "pause" {
+		s.PauseTimer = true
+		s.HideDiscord = false
+		return
+	}
+	s.PauseTimer = false
+	s.HideDiscord = true
 }
 
 func legacyDataDir() string {

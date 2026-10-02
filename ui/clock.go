@@ -384,7 +384,7 @@ func (a *App) updateElapsed() {
 	if !c.running {
 		return
 	}
-	hold, syncWhenApplied := pauseTick(a.settings.pausesTimer(), !a.settings.Activity)
+	hold, syncWhenApplied := pauseTick(a.settings.PauseTimer, !a.settings.Activity)
 	if hold {
 		a.holdPausedClock()
 		return

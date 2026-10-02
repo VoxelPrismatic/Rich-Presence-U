@@ -113,18 +113,38 @@ func TestPrefsKeepPlatformsWhenAutoConnectIsBool(t *testing.T) {
 	}
 }
 
-func TestNormalizeHideBehavior(t *testing.T) {
-	s := normalizeSettings(Settings{Platform: "NS1"})
-	if s.HideBehavior != hideDiscord {
-		t.Fatalf("default %q", s.HideBehavior)
+func TestApplyLegacyHide(t *testing.T) {
+	s := defaultSettings()
+	applyLegacyHide(&s, []byte(`{"hide_behavior":"pause"}`))
+	if !s.PauseTimer || s.HideDiscord {
+		t.Fatalf("pause %+v", s.PauseTimer)
 	}
-	s = normalizeSettings(Settings{Platform: "NS1", HideBehavior: hidePause})
-	if s.HideBehavior != hidePause {
-		t.Fatalf("pause %q", s.HideBehavior)
+	s = defaultSettings()
+	applyLegacyHide(&s, []byte(`{"hide_behavior":"discord"}`))
+	if s.PauseTimer || !s.HideDiscord {
+		t.Fatalf("discord pause %v hide %v", s.PauseTimer, s.HideDiscord)
 	}
-	s = normalizeSettings(Settings{Platform: "NS1", HideBehavior: "nope"})
-	if s.HideBehavior != hideDiscord {
-		t.Fatalf("unknown %q", s.HideBehavior)
+	s = Settings{PauseTimer: true, HideDiscord: true}
+	applyLegacyHide(&s, []byte(`{"pause_timer":true,"hide_discord":true,"hide_behavior":"pause"}`))
+	if !s.PauseTimer || !s.HideDiscord {
+		t.Fatalf("both %+v", s)
+	}
+	s = Settings{}
+	applyLegacyHide(&s, []byte(`{"pause_timer":false,"hide_discord":false}`))
+	if s.PauseTimer || s.HideDiscord {
+		t.Fatalf("explicit off %+v", s)
+	}
+}
+
+func TestAutoConnectHint(t *testing.T) {
+	if autoConnectHint(connectNever) != "AUTOCONNECT_HINT_NEVER" {
+		t.Fatal(autoConnectHint(connectNever))
+	}
+	if autoConnectHint(connectStartup) != "AUTOCONNECT_HINT_STARTUP" {
+		t.Fatal(autoConnectHint(connectStartup))
+	}
+	if autoConnectHint(connectPoll) != "AUTOCONNECT_HINT_POLL" {
+		t.Fatal(autoConnectHint(connectPoll))
 	}
 }
 
