@@ -14,27 +14,30 @@ import (
 )
 
 type Settings struct {
-	System           nso.System  `json:"system"`
-	Platform         string      `json:"platform,omitempty"`
-	Language         string      `json:"language"`
-	Refresh          int         `json:"refresh"`
-	RefreshLast      int64       `json:"refresh_last"`
-	AutoConnect      connectMode `json:"auto_connect"`
-	KeepOn           bool        `json:"keep_on"`
-	DebugLog         bool        `json:"debug_log"`
-	Activity         bool        `json:"activity"`
-	PauseTimer       bool        `json:"pause_timer"`
-	HideDiscord      bool        `json:"hide_discord"`
-	AutoUnhide       bool        `json:"auto_unhide,omitempty"`
-	Region           nso.Region  `json:"region"`
-	WindowW          int         `json:"window_w"`
-	WindowH          int         `json:"window_h"`
-	WindowX          int         `json:"window_x"`
-	WindowY          int         `json:"window_y"`
-	InstallDeclined  string      `json:"install_declined,omitempty"`
-	UpdateDeclined   string      `json:"update_declined,omitempty"`
-	IGDBClientID     string      `json:"igdb_client_id,omitempty"`
-	IGDBClientSecret string      `json:"igdb_client_secret,omitempty"`
+	System          nso.System  `json:"system"`
+	Platform        string      `json:"platform,omitempty"`
+	Language        string      `json:"language"`
+	Refresh         int         `json:"refresh"`
+	RefreshLast     int64       `json:"refresh_last"`
+	AutoConnect     connectMode `json:"auto_connect"`
+	KeepOn          bool        `json:"keep_on"`
+	DebugLog        bool        `json:"debug_log"`
+	Activity        bool        `json:"activity"`
+	PauseTimer      bool        `json:"pause_timer"`
+	HideDiscord     bool        `json:"hide_discord"`
+	AutoUnhide      bool        `json:"auto_unhide,omitempty"`
+	Region          nso.Region  `json:"region"`
+	WindowW         int         `json:"window_w"`
+	WindowH         int         `json:"window_h"`
+	WindowX         int         `json:"window_x"`
+	WindowY         int         `json:"window_y"`
+	InstallDeclined string      `json:"install_declined,omitempty"`
+	UpdateDeclined  string      `json:"update_declined,omitempty"`
+	// TestUpdate is set in prefs.json. It fetches the latest release even when
+	// that release is not newer than this build. It is not a settings control.
+	TestUpdate       bool   `json:"test_update,omitempty"`
+	IGDBClientID     string `json:"igdb_client_id,omitempty"`
+	IGDBClientSecret string `json:"igdb_client_secret,omitempty"`
 }
 
 type GameState struct {
@@ -58,7 +61,7 @@ type SystemState struct {
 
 type prefsFile struct {
 	Settings
-	Platforms map[string]SystemState `json:"platforms"`
+	Platforms map[string]SystemState `json:"platforms,omitempty"`
 }
 
 func defaultSettings() Settings {
@@ -126,16 +129,12 @@ func loadPrefs(dir string) (Settings, map[string]*SystemState) {
 	return normalizeSettings(s), systems
 }
 
-func savePrefs(dir string, s Settings, systems map[string]*SystemState) error {
+func savePrefs(dir string, s Settings) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	pf := prefsFile{Settings: s, Platforms: map[string]SystemState{}}
-	for slug, st := range systems {
-		if st != nil && slug != "" {
-			pf.Platforms[slug] = *st
-		}
-	}
+	// Platforms live in games.db. Leave the JSON key out.
+	pf := prefsFile{Settings: s}
 	b, err := json.MarshalIndent(pf, "", "  ")
 	if err != nil {
 		return err

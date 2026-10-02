@@ -48,7 +48,7 @@ func openDB(path string) (*gorm.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open games.db: %w", err)
 	}
-	if err := db.AutoMigrate(&GormGame{}, &gormKV{}); err != nil {
+	if err := db.AutoMigrate(&GormGame{}, &gormKV{}, &PlatformPrefs{}, &PlatformHistory{}); err != nil {
 		return nil, err
 	}
 	return db, nil

@@ -26,7 +26,8 @@ func Main() {
 		applyAppIcon(b)
 	}
 
-	settings, systems := loadPrefs(client.ConfigDir)
+	settings, fromFile := loadPrefs(client.ConfigDir)
+	systems := loadPlatforms(client, settings, fromFile)
 	igdbc := igdb.NewClient()
 	igdbc.UserAgent = svc.UserAgent()
 	igdbc.SetCredentials(settings.IGDBClientID, settings.IGDBClientSecret)

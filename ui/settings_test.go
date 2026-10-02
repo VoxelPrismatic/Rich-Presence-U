@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -49,19 +50,15 @@ func TestPrefsMigrateHACKey(t *testing.T) {
 	if st == nil || st.Game != "70010000012345" {
 		t.Fatalf("migrated state %+v %v", st, systems)
 	}
-	if err := savePrefs(dir, s, systems); err != nil {
+	if err := savePrefs(dir, s); err != nil {
 		t.Fatal(err)
 	}
 	b, err := os.ReadFile(filepath.Join(dir, "prefs.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	var pf prefsFile
-	if err := json.Unmarshal(b, &pf); err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := pf.Platforms["NS1"]; !ok {
-		t.Fatalf("saved keys %v", pf.Platforms)
+	if bytes.Contains(b, []byte(`"platforms"`)) {
+		t.Fatalf("platforms should leave prefs.json: %s", b)
 	}
 }
 
@@ -94,6 +91,39 @@ func TestAutoConnectLegacyBool(t *testing.T) {
 	s = normalizeSettings(Settings{Platform: "NS1", AutoConnect: "nope"})
 	if s.AutoConnect != connectNever {
 		t.Fatalf("unknown = %q", s.AutoConnect)
+	}
+}
+
+func TestTestUpdatePref(t *testing.T) {
+	dir := t.TempDir()
+	raw := []byte(`{"test_update": true, "platform": "NS1", "region": "US", "platforms": {"NS1": {"game": "1", "library": {}}}}`)
+	if err := os.WriteFile(prefsPath(dir), raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s, _ := loadPrefs(dir)
+	if !s.TestUpdate {
+		t.Fatal("test_update should load")
+	}
+	if err := savePrefs(dir, s); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(prefsPath(dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(b, []byte(`"test_update": true`)) {
+		t.Fatalf("saved prefs: %s", b)
+	}
+	s.TestUpdate = false
+	if err := savePrefs(dir, s); err != nil {
+		t.Fatal(err)
+	}
+	b, err = os.ReadFile(prefsPath(dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(b, []byte("test_update")) {
+		t.Fatalf("false test_update should be omitted: %s", b)
 	}
 }
 
