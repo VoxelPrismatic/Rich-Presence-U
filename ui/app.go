@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/mappu/miqt/qt6"
 	"github.com/mappu/miqt/qt6/mainthread"
@@ -32,6 +33,9 @@ type App struct {
 	clockFailed    bool
 	clockFailStart int64
 	clockFailEnd   int64
+	clockSent      time.Time
+	clockSentStart int64
+	clockSentEnd   int64
 	busy           bool
 	silent         bool
 	warnHide       bool

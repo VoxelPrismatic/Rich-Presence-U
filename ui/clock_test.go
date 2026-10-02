@@ -38,6 +38,40 @@ func TestCountdownPercent(t *testing.T) {
 	}
 }
 
+func TestClockPushDue(t *testing.T) {
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	if !clockPushDue(time.Time{}, now) {
+		t.Fatal("first push should be due")
+	}
+	if clockPushDue(now, now.Add(5*time.Second-time.Millisecond)) {
+		t.Fatal("push before five seconds")
+	}
+	if !clockPushDue(now, now.Add(5*time.Second)) {
+		t.Fatal("push at five seconds")
+	}
+}
+
+func TestClockDisplayChanged(t *testing.T) {
+	now := time.Date(2026, 1, 1, 0, 0, 30, 0, time.UTC)
+	sentAt := now.Add(-4 * time.Second)
+	sentStart := sentAt.Add(-30 * time.Second).Unix()
+	frozen := now.Add(-30 * time.Second).Unix()
+	if clockDisplayChanged(false, sentAt, sentStart, 0, frozen, 0, now) {
+		t.Fatal("frozen count-up should keep the same displayed second")
+	}
+	if !clockDisplayChanged(false, sentAt, sentStart, 0, now.Add(-10*time.Second).Unix(), 0, now) {
+		t.Fatal("edited count-up should be a different second")
+	}
+	sentEnd := sentAt.Add(10 * time.Second).Unix()
+	frozenEnd := now.Add(10 * time.Second).Unix()
+	if clockDisplayChanged(true, sentAt, sentStart, sentEnd, now.Unix(), frozenEnd, now) {
+		t.Fatal("frozen countdown should keep the same remaining second")
+	}
+	if !clockDisplayChanged(true, sentAt, sentStart, sentEnd, now.Unix(), now.Add(20*time.Second).Unix(), now) {
+		t.Fatal("edited countdown should be a different second")
+	}
+}
+
 func TestPauseTick(t *testing.T) {
 	hold, sync := pauseTick(true, true)
 	if !hold || sync {
@@ -50,6 +84,15 @@ func TestPauseTick(t *testing.T) {
 	hold, sync = pauseTick(false, true)
 	if hold || sync {
 		t.Fatalf("hide from discord = hold %v sync %v", hold, sync)
+	}
+}
+
+func TestVisibilityPressed(t *testing.T) {
+	if visibilityPressed(true) {
+		t.Fatal("counting or visible should stay unpressed")
+	}
+	if !visibilityPressed(false) {
+		t.Fatal("paused or hidden should be pressed")
 	}
 }
 

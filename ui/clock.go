@@ -8,6 +8,12 @@ import (
 
 const clockMaxSeconds = 23*3600 + 59*60 + 59
 
+// clockPushEvery is how often a frozen play clock is written back to Discord.
+// Discord keeps counting from the last timestamps it received, so the rebased
+// start and end have to be sent again. Five seconds stays under Discord's
+// presence update limit.
+const clockPushEvery = 5 * time.Second
+
 // playClock is the QTimeEdit field, its count mode, and the single-shot
 // Qt timer that refreshes it from the start and end timestamps.
 type playClock struct {
@@ -89,6 +95,30 @@ func stepClockSeconds(current, unit, steps int) int {
 		return clockMaxSeconds
 	}
 	return next
+}
+
+func clockPushDue(last, now time.Time) bool {
+	return last.IsZero() || now.Sub(last) >= clockPushEvery
+}
+
+// clockDisplayChanged reports that the second we would send is not the second
+// last written. A frozen clock rebases unix times and keeps the same second.
+// Compare the old pair at the time it was sent: at "now" those old timestamps
+// have already drifted, which is the drift this push is correcting.
+func clockDisplayChanged(countDown bool, sentAt time.Time, sentStart, sentEnd, start, end int64, now time.Time) bool {
+	if sentAt.IsZero() {
+		return true
+	}
+	sentShown := displayedSeconds(countDown, unixStamp(sentStart), unixStamp(sentEnd), sentAt)
+	nowShown := displayedSeconds(countDown, unixStamp(start), unixStamp(end), now)
+	return sentShown != nowShown
+}
+
+func unixStamp(sec int64) time.Time {
+	if sec == 0 {
+		return time.Time{}
+	}
+	return time.Unix(sec, 0)
 }
 
 func displayedSeconds(countDown bool, start, end, now time.Time) int {
@@ -387,6 +417,11 @@ func (a *App) updateElapsed() {
 	hold, syncWhenApplied := pauseTick(a.settings.PauseTimer, !a.settings.Activity)
 	if hold {
 		a.holdPausedClock()
+		// Hide from Discord already cleared the activity. Pause alone leaves it
+		// up, so the frozen timestamps have to be written or Discord counts on.
+		if !a.settings.HideDiscord {
+			a.syncAppliedClock()
+		}
 		return
 	}
 	c.heldOK = false

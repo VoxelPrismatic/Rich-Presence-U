@@ -62,11 +62,17 @@ func visibilityIcon(pauseMode, counting bool) (name, tip string) {
 	return "view-visible-off", "STATUS_DISABLED"
 }
 
+// visibilityPressed is the button's checked state. Pause and hidden are
+// pressed, so the usual counting or visible state keeps a normal background.
+func visibilityPressed(activity bool) bool {
+	return !activity
+}
+
 func (a *App) refreshVisibility() {
 	if a.visBtn == nil {
 		return
 	}
-	a.visBtn.SetChecked(a.settings.Activity)
+	a.visBtn.SetChecked(visibilityPressed(a.settings.Activity))
 	name, tip := visibilityIcon(!a.settings.HideDiscord, a.settings.Activity)
 	a.visBtn.SetIcon(iconNamed(name, name))
 	a.visBtn.SetToolTip(a.tr.T(tip))
@@ -80,6 +86,9 @@ func (a *App) onDisconnected() {
 	a.clockSync = false
 	a.clockDirty = false
 	a.clockFailed = false
+	a.clockSent = time.Time{}
+	a.clockSentStart = 0
+	a.clockSentEnd = 0
 	if a.avatar != nil {
 		a.avatar.SetPixmap(qt6.NewQPixmap())
 	}
@@ -258,6 +267,9 @@ func (a *App) pushStatus() {
 				a.appliedBody = body
 				a.clockDirty = false
 				a.clockFailed = false
+				a.clockSent = time.Time{}
+				a.clockSentStart = 0
+				a.clockSentEnd = 0
 				a.appliedSys = sysKey
 				a.appliedGame = gameID
 				a.ensureElapsedTick()
@@ -272,7 +284,7 @@ func (a *App) pushStatus() {
 }
 
 func (a *App) onVisibility() {
-	a.settings.Activity = a.visBtn.IsChecked()
+	a.settings.Activity = !a.visBtn.IsChecked()
 	if a.settings.Activity {
 		a.clk.heldOK = false
 		if a.settings.PauseTimer {
@@ -306,10 +318,15 @@ func (a *App) onVisibility() {
 	}()
 }
 
-// syncAppliedClock pushes the play clock when the visible status is the one
-// already applied. Unchanged timestamps are left alone.
+// syncAppliedClock pushes the play clock when that status is still on Discord.
+// A running clock keeps one start time, and Discord counts from it. A frozen
+// clock rebases that start as wall time moves, so the new pair is written
+// about every five seconds. Hide from Discord clears the activity instead.
 func (a *App) syncAppliedClock() {
 	if a.clockSync || a.built == nil || !a.rpc.Connected() {
+		return
+	}
+	if !a.settings.Activity && a.settings.HideDiscord {
 		return
 	}
 	start, end := a.presenceTimestamps()
@@ -318,6 +335,10 @@ func (a *App) syncAppliedClock() {
 		return
 	}
 	if same && !a.clockDirty {
+		return
+	}
+	now := time.Now()
+	if !a.clockDirty && !clockPushDue(a.clockSent, now) && !clockDisplayChanged(a.clk.down, a.clockSent, a.clockSentStart, a.clockSentEnd, start, end, now) {
 		return
 	}
 	if !a.clockStatusApplied() {
@@ -330,6 +351,9 @@ func (a *App) syncAppliedClock() {
 	act := *a.built
 	act.StartTimestamp = start
 	act.EndTimestamp = end
+	a.clockSent = now
+	a.clockSentStart = start
+	a.clockSentEnd = end
 	a.clockSync = true
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -344,11 +368,22 @@ func (a *App) syncAppliedClock() {
 				a.debug("sync clock: %v", err)
 				return
 			}
-			if a.built == nil || !a.rpc.Connected() || !a.settings.PauseTimer || !a.settings.Activity {
+			if a.built == nil || !a.rpc.Connected() || !a.settings.PauseTimer {
 				return
 			}
+			if !a.settings.Activity && a.settings.HideDiscord {
+				return
+			}
+			if !a.clockStatusApplied() {
+				return
+			}
+			// The frozen clock rebases again while this write is in flight.
+			// Drop the dirty flag anyway so that rebase waits for the next
+			// five-second push instead of sending on every tick.
+			a.clockDirty = false
+			a.clockFailed = false
 			nowStart, nowEnd := a.presenceTimestamps()
-			if nowStart != start || nowEnd != end || !a.clockStatusApplied() {
+			if nowStart != start || nowEnd != end {
 				return
 			}
 			next := *a.built
@@ -356,8 +391,6 @@ func (a *App) syncAppliedClock() {
 			next.EndTimestamp = end
 			a.built = &next
 			a.applied = a.fingerprint()
-			a.clockDirty = false
-			a.clockFailed = false
 			a.updateApply()
 		})
 	}()
@@ -391,6 +424,9 @@ func (a *App) setHideDiscord(on bool) {
 	act := *a.built
 	if !on && a.settings.PauseTimer {
 		act.StartTimestamp, act.EndTimestamp = a.presenceTimestamps()
+		a.clockSent = time.Now()
+		a.clockSentStart = act.StartTimestamp
+		a.clockSentEnd = act.EndTimestamp
 	}
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
