@@ -4,7 +4,7 @@
 
 A simple application that allows you to create your own activity statuses for all gamers and display them on your Discord profile.
 
-<img src="./.github/activity_status.png" alt="Activity status" width="100%">
+<img src="./.github/tri-panel.png" alt="Activity status" width="100%">
 
 ## Features
 
@@ -22,7 +22,7 @@ A simple application that allows you to create your own activity statuses for al
   - Nintendo Friend Code sharing.
   - Elapsed time, time remaining, party size, and more.
 
-<img src="./.github/user_interface.png" alt="User interface" width="100%">
+<img src="./.github/.png" alt="User interface" width="100%">
 
 > [!NOTE]
 > Automatic game detection is not supported on any console. Previous efforts
@@ -39,7 +39,7 @@ A simple application that allows you to create your own activity statuses for al
 | ------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | Linux   | [rich-presence-qt_linux][linux_shared]                                        | [rich-presence-qt_linux_(portable).AppImage][linux_portable]                                |
 | Windows | [rich-presence-qt_windows.zip][win_shared]<br>(not recommended<sup>[1]</sup>) | [rich-presence-qt_windows_(portable).zip][win_portable]<br> **(recommended<sup>[2]</sup>)** |
-| macOS   |                                                                                   | [rich-presence-qt_macOS.app.zip][mac_app]                                                   |
+| macOS   |                                                                               | [rich-presence-qt_macOS.app.zip][mac_app]                                                   |
 
 [linux_shared]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_linux
 [linux_portable]: https://github.com/VoxelPrismatic/Rich-Presence-U/releases/latest/download/rich-presence-qt_linux_.portable.AppImage
@@ -76,7 +76,9 @@ A simple application that allows you to create your own activity statuses for al
 # Credits
 
 - **Original Codebase/Idea** - NinStar
-- **Rewrite** - VoxelPrismatic
+- **Rewrite**
+  - VoxelPrismatic
+  - Grok (yes, this app is vibe coded)
 - **Databases**
   - Twitch/IGDB
   - Nintendo eShop
@@ -95,4 +97,3 @@ A simple application that allows you to create your own activity statuses for al
 [locale_template]: https://github.com/ninstar/Rich-Presence-U/tree/main/source/locales/english.csv
 [rcedit]: https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe
 [golang]: https://go.dev/
-
