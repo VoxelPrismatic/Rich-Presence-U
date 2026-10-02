@@ -20,6 +20,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 
 	head := qt6.NewQHBoxLayout2()
 	back := qt6.NewQPushButton4(iconNamed("go-previous", "go-previous"), a.tr.T("SETTINGS_BACK"))
+	a.settingsBack = back
 	back.OnClicked(func() { a.stack.SetCurrentIndex(0) })
 	head.AddWidget(back.QWidget)
 	head.AddStretch()
@@ -64,7 +65,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 			a.settings.AutoConnect = on
 		}
 	})
-	addSettingsCheck(presLay, a.tr.T("AUTOCONNECT_TITLE"), a.autoConn, helpButton(a.tr.T("AUTOCONNECT_HINT")))
+	addSettingsCheck(presLay, a.tr.T("AUTOCONNECT_TITLE"), a.autoConn, a.helpButton(a.tr.T("AUTOCONNECT_HINT")))
 
 	a.keepOn = qt6.NewQCheckBox2()
 	a.keepOn.OnToggled(func(on bool) {
@@ -73,7 +74,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 			a.refreshScreensaver()
 		}
 	})
-	addSettingsCheck(presLay, a.tr.T("KEEPON_TITLE"), a.keepOn, helpButton(a.tr.T("KEEPON_HINT")))
+	addSettingsCheck(presLay, a.tr.T("KEEPON_TITLE"), a.keepOn, a.helpButton(a.tr.T("KEEPON_HINT")))
 
 	a.debugOn = qt6.NewQCheckBox2()
 	a.debugOn.OnToggled(func(on bool) {
@@ -82,7 +83,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 			a.log.SetEnabled(on)
 		}
 	})
-	addSettingsCheck(presLay, a.tr.T("DEBUG_TITLE"), a.debugOn, helpButton(a.tr.T("DEBUG_HINT")))
+	addSettingsCheck(presLay, a.tr.T("DEBUG_TITLE"), a.debugOn, a.helpButton(a.tr.T("DEBUG_HINT")))
 
 	dataWrap := qt6.NewQWidget2()
 	dw := qt6.NewQHBoxLayout(dataWrap)
@@ -100,7 +101,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 	a.dataBtn.OnClicked(func() { a.onDataAction() })
 	dw.AddWidget2(a.dataCombo.QWidget, 1)
 	dw.AddWidget(a.dataBtn.QWidget)
-	addSettingsField(presLay, a.tr.T("DATA_TITLE"), dataWrap, helpButton(a.tr.T("DATA_HINT")))
+	addSettingsField(presLay, a.tr.T("DATA_TITLE"), dataWrap, a.helpButton(a.tr.T("DATA_HINT")))
 
 	_, igdbLay := newSettingsPane(a.tr.T("SETTINGS_GAME_SEARCH"))
 	steps := linkLabel(locales.GameSearchInstructions(a.tr.T("IGDB_INSTRUCTIONS"), ""))

@@ -9,6 +9,7 @@ import (
 
 func (a *App) buildWindow() {
 	a.win = qt6.NewQMainWindow2()
+	a.watchIconScheme()
 	a.win.SetWindowTitle(a.tr.T("APP_TITLE"))
 	a.win.SetMinimumSize2(480, 320)
 	if a.settings.WindowW > 0 && a.settings.WindowH > 0 {
@@ -121,6 +122,7 @@ func (a *App) buildPresence() *qt6.QWidget {
 	descRow := qt6.NewQHBoxLayout2()
 	pub := qt6.NewQLabel2()
 	pub.SetPixmap(iconPublic().Pixmap2(16, 16))
+	a.descIcon = pub
 	a.desc = qt6.NewQComboBox2()
 	a.desc.SetToolTip(a.tr.T("SHORT_DESC"))
 	a.desc.SetEditable(true)
@@ -260,7 +262,7 @@ func (a *App) buildDetailsForm() *qt6.QWidget {
 		a.sys().TagIcon = on
 		a.updateApply()
 	})
-	addFormRow(tg, 0, a.tr.T("TAG_ICON_TITLE"), a.tagIcon.QWidget, helpButton(a.tr.T("TAG_ICON_HINT")))
+	addFormRow(tg, 0, a.tr.T("TAG_ICON_TITLE"), a.tagIcon.QWidget, a.helpButton(a.tr.T("TAG_ICON_HINT")))
 	a.preserve = qt6.NewQCheckBox2()
 	a.preserve.OnToggled(func(on bool) {
 		if a.silent {
@@ -268,7 +270,7 @@ func (a *App) buildDetailsForm() *qt6.QWidget {
 		}
 		a.sys().TimePreserve = on
 	})
-	addFormRow(tg, 1, a.tr.T("PRESERVE_TIME_TITLE"), a.preserve.QWidget, helpButton(a.tr.T("PRESERVE_TIME_HINT")))
+	addFormRow(tg, 1, a.tr.T("PRESERVE_TIME_TITLE"), a.preserve.QWidget, a.helpButton(a.tr.T("PRESERVE_TIME_HINT")))
 	box.AddWidget(toggles)
 	return wrap
 }
