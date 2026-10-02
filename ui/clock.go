@@ -37,8 +37,7 @@ func (a *App) initClockTimer() {
 
 func (a *App) buildClockRow() *qt6.QHBoxLayout {
 	c := &a.clk
-	row := qt6.NewQHBoxLayout2()
-	row.SetSpacing(2)
+	timeRow := qt6.NewQHBoxLayout2()
 	c.icon = qt6.NewQLabel2()
 	c.icon.SetPixmap(iconGames().Pixmap2(16, 16))
 	c.edit = newClockEdit()
@@ -48,8 +47,8 @@ func (a *App) buildClockRow() *qt6.QHBoxLayout {
 		c.edit.SetFocus()
 		super(event)
 	})
-	row.AddWidget(c.icon.QWidget)
-	row.AddWidget(c.edit.QWidget)
+	timeRow.AddWidget(c.icon.QWidget)
+	timeRow.AddWidget(c.edit.QWidget)
 
 	c.mode = qt6.NewQPushButton2()
 	c.mode.OnClicked(func() { a.toggleClockMode() })
@@ -57,11 +56,13 @@ func (a *App) buildClockRow() *qt6.QHBoxLayout {
 	c.reset.SetIcon(iconNamed("view-refresh", "view-refresh"))
 	c.reset.SetToolTip(a.tr.T("CLOCK_RESET"))
 	c.reset.OnClicked(func() { a.resetClock() })
-	row.AddWidget(c.mode.QWidget)
-	row.AddWidget(c.reset.QWidget)
+	timeRow.AddWidget(c.mode.QWidget)
+	timeRow.AddWidget(c.reset.QWidget)
 	a.refreshClockMode()
 	a.showSeconds(0)
-	return row
+	timeRow.AddStretch()
+
+	return timeRow
 }
 
 func newClockEdit() *qt6.QTimeEdit {

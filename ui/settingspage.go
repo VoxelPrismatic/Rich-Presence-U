@@ -27,6 +27,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 	box.AddLayout(head.QLayout)
 
 	_, locLay := newSettingsPane(a.tr.T("SETTINGS_LOCALIZATION"))
+	locForm := settingsForm(locLay)
 	a.langCombo = qt6.NewQComboBox2()
 	a.langCombo.AddItem3(a.tr.T("LANGUAGE_AUTO"), qt6.NewQVariant11(""))
 	for _, code := range localeCodes() {
@@ -39,7 +40,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 		a.settings.Language = a.langCombo.ItemData(i).ToString()
 		a.tr.Set(a.settings.Language)
 	})
-	addSettingsField(locLay, a.tr.T("LANGUAGE_TITLE"), a.langCombo.QWidget, nil)
+	addFormRow(locForm, 0, a.tr.T("LANGUAGE_TITLE"), a.langCombo.QWidget, nil)
 
 	a.prefRegion = qt6.NewQComboBox2()
 	a.prefRegion.AddItem3(a.tr.T("REGION_US"), qt6.NewQVariant11("US"))
@@ -56,16 +57,17 @@ func (a *App) buildSettings() *qt6.QWidget {
 			a.updateApply()
 		}
 	})
-	addSettingsField(locLay, a.tr.T("REGION_TITLE"), a.prefRegion.QWidget, nil)
+	addFormRow(locForm, 1, a.tr.T("REGION_TITLE"), a.prefRegion.QWidget, nil)
 
 	_, presLay := newSettingsPane(a.tr.T("SETTINGS_PRESENCE"))
+	presForm := settingsForm(presLay)
 	a.autoConn = qt6.NewQCheckBox2()
 	a.autoConn.OnToggled(func(on bool) {
 		if !a.silent {
 			a.settings.AutoConnect = on
 		}
 	})
-	addSettingsCheck(presLay, a.tr.T("AUTOCONNECT_TITLE"), a.autoConn, a.helpButton(a.tr.T("AUTOCONNECT_HINT")))
+	addFormRow(presForm, 0, a.tr.T("AUTOCONNECT_TITLE"), a.autoConn.QWidget, a.helpButton(a.tr.T("AUTOCONNECT_HINT")))
 
 	a.keepOn = qt6.NewQCheckBox2()
 	a.keepOn.OnToggled(func(on bool) {
@@ -74,7 +76,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 			a.refreshScreensaver()
 		}
 	})
-	addSettingsCheck(presLay, a.tr.T("KEEPON_TITLE"), a.keepOn, a.helpButton(a.tr.T("KEEPON_HINT")))
+	addFormRow(presForm, 1, a.tr.T("KEEPON_TITLE"), a.keepOn.QWidget, a.helpButton(a.tr.T("KEEPON_HINT")))
 
 	a.debugOn = qt6.NewQCheckBox2()
 	a.debugOn.OnToggled(func(on bool) {
@@ -83,13 +85,12 @@ func (a *App) buildSettings() *qt6.QWidget {
 			a.log.SetEnabled(on)
 		}
 	})
-	addSettingsCheck(presLay, a.tr.T("DEBUG_TITLE"), a.debugOn, a.helpButton(a.tr.T("DEBUG_HINT")))
+	addFormRow(presForm, 2, a.tr.T("DEBUG_TITLE"), a.debugOn.QWidget, a.helpButton(a.tr.T("DEBUG_HINT")))
 
 	dataWrap := qt6.NewQWidget2()
 	dw := qt6.NewQHBoxLayout(dataWrap)
 	dw.SetContentsMargins(0, 0, 0, 0)
 	a.dataCombo = qt6.NewQComboBox2()
-	a.dataCombo.SetSizePolicy2(qt6.QSizePolicy__Expanding, qt6.QSizePolicy__Fixed)
 	a.dataCombo.AddItem4(iconNamed("action-unavailable", "action-unavailable-symbolic"), a.tr.T("DATA_SELECT"), qt6.NewQVariant11(""))
 	a.dataCombo.AddItem4(iconNamed("edit-clear-history", "edit-clear-history"), a.tr.T("RESET_CACHE_TITLE"), qt6.NewQVariant11("cache"))
 	a.dataCombo.AddItem4(iconNamed("user-trash", "albumfolder-user-trash"), a.tr.T("RESET_ALL_TITLE"), qt6.NewQVariant11("all"))
@@ -99,15 +100,17 @@ func (a *App) buildSettings() *qt6.QWidget {
 		a.dataBtn.SetIcon(a.dataCombo.ItemIcon(i))
 	})
 	a.dataBtn.OnClicked(func() { a.onDataAction() })
-	dw.AddWidget2(a.dataCombo.QWidget, 1)
+	dw.AddWidget(a.dataCombo.QWidget)
 	dw.AddWidget(a.dataBtn.QWidget)
-	addSettingsField(presLay, a.tr.T("DATA_TITLE"), dataWrap, a.helpButton(a.tr.T("DATA_HINT")))
+	dw.AddStretch()
+	addFormRow(presForm, 3, a.tr.T("DATA_TITLE"), dataWrap, a.helpButton(a.tr.T("DATA_HINT")))
 
 	_, igdbLay := newSettingsPane(a.tr.T("SETTINGS_GAME_SEARCH"))
 	steps := linkLabel(locales.GameSearchInstructions(a.tr.T("IGDB_INSTRUCTIONS"), ""))
 	steps.SetWordWrap(true)
 	steps.SetAlignment(qt6.AlignLeft | qt6.AlignTop)
 	igdbLay.AddWidget(steps.QWidget)
+	igdbForm := settingsForm(igdbLay)
 	a.igdbID = qt6.NewQLineEdit2()
 	a.igdbID.SetPlaceholderText(a.tr.T("IGDB_CLIENT_ID"))
 	a.igdbID.OnEditingFinished(func() { a.saveIGDBCredentials() })
@@ -115,18 +118,19 @@ func (a *App) buildSettings() *qt6.QWidget {
 	a.igdbSecret.SetPlaceholderText(a.tr.T("IGDB_CLIENT_SECRET"))
 	a.igdbSecret.SetEchoMode(qt6.QLineEdit__Password)
 	a.igdbSecret.OnEditingFinished(func() { a.saveIGDBCredentials() })
-	igdbLay.AddWidget(a.igdbID.QWidget)
-	igdbLay.AddWidget(a.igdbSecret.QWidget)
-	igdbBtns := qt6.NewQHBoxLayout2()
-	igdbBtns.SetContentsMargins(0, 0, 0, 0)
+	addFormRow(igdbForm, 0, a.tr.T("IGDB_CLIENT_ID"), a.igdbID.QWidget, nil)
+	addFormRow(igdbForm, 1, a.tr.T("IGDB_CLIENT_SECRET"), a.igdbSecret.QWidget, nil)
+	igdbBtns := qt6.NewQWidget2()
+	igdbLayBtns := qt6.NewQHBoxLayout(igdbBtns)
+	igdbLayBtns.SetContentsMargins(0, 0, 0, 0)
 	testBtn := qt6.NewQPushButton3(a.tr.T("IGDB_TEST"))
 	testBtn.OnClicked(func() { a.testIGDB() })
 	consoleBtn := qt6.NewQPushButton3(a.tr.T("IGDB_CONSOLE"))
 	consoleBtn.OnClicked(func() { openURL("https://dev.twitch.tv/console/apps") })
-	igdbBtns.AddWidget(testBtn.QWidget)
-	igdbBtns.AddWidget(consoleBtn.QWidget)
-	igdbBtns.AddStretch()
-	igdbLay.AddLayout(igdbBtns.QLayout)
+	igdbLayBtns.AddWidget(testBtn.QWidget)
+	igdbLayBtns.AddWidget(consoleBtn.QWidget)
+	igdbLayBtns.AddStretch()
+	addFormRow(igdbForm, 2, "", igdbBtns, nil)
 
 	_, creditsLay := newSettingsPane(a.tr.T("ABOUT_CREDITS"))
 	creditsLay.AddWidget(a.buildAboutTable())
@@ -181,36 +185,18 @@ func newSettingsPane(title string) (*qt6.QWidget, *qt6.QVBoxLayout) {
 	return w, lay
 }
 
+func settingsForm(parent *qt6.QVBoxLayout) *qt6.QGridLayout {
+	g := newFormGrid(nil)
+	parent.AddLayout(g.QLayout)
+	return g
+}
+
 func settingsScroll(lay *qt6.QVBoxLayout) *qt6.QScrollArea {
 	scroll := qt6.NewQScrollArea2()
 	scroll.SetWidgetResizable(true)
 	scroll.SetFrameShape(qt6.QFrame__NoFrame)
 	scroll.SetWidget(lay.ParentWidget())
 	return scroll
-}
-
-func addSettingsField(parent *qt6.QVBoxLayout, title string, control *qt6.QWidget, help *qt6.QToolButton) {
-	row := qt6.NewQHBoxLayout2()
-	row.SetContentsMargins(0, 0, 0, 0)
-	row.AddWidget(qt6.NewQLabel3(title).QWidget)
-	if help != nil {
-		row.AddWidget(help.QWidget)
-	}
-	row.AddStretch()
-	parent.AddLayout(row.QLayout)
-	parent.AddWidget(control)
-}
-
-func addSettingsCheck(parent *qt6.QVBoxLayout, title string, box *qt6.QCheckBox, help *qt6.QToolButton) {
-	box.SetText(title)
-	row := qt6.NewQHBoxLayout2()
-	row.SetContentsMargins(0, 0, 0, 0)
-	row.AddWidget(box.QWidget)
-	if help != nil {
-		row.AddWidget(help.QWidget)
-	}
-	row.AddStretch()
-	parent.AddLayout(row.QLayout)
 }
 
 func (a *App) buildAboutTable() *qt6.QWidget {
