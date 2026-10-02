@@ -27,6 +27,8 @@ func TestIconRoot(t *testing.T) {
 			"go-next.svg",
 			"go-previous.svg",
 			"help-contextual.svg",
+			"media-playback-pause.svg",
+			"media-playback-start.svg",
 			"network-connect.svg",
 			"network-disconnect.svg",
 			"player-time.svg",

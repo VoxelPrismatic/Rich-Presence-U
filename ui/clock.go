@@ -8,6 +8,12 @@ import (
 
 const clockMaxSeconds = 23*3600 + 59*60 + 59
 
+// clockPushEvery is how often a frozen play clock is written back to Discord.
+// Discord keeps counting from the last timestamps it received, so the rebased
+// start and end have to be sent again. Five seconds stays under Discord's
+// presence update limit.
+const clockPushEvery = 5 * time.Second
+
 // playClock is the QTimeEdit field, its count mode, and the single-shot
 // Qt timer that refreshes it from the start and end timestamps.
 type playClock struct {
@@ -23,6 +29,8 @@ type playClock struct {
 	end     time.Time
 	running bool
 	alerted bool
+	held    int
+	heldOK  bool
 	drafts  map[string]int
 
 	timer *qt6.QTimer
@@ -37,8 +45,7 @@ func (a *App) initClockTimer() {
 
 func (a *App) buildClockRow() *qt6.QHBoxLayout {
 	c := &a.clk
-	row := qt6.NewQHBoxLayout2()
-	row.SetSpacing(2)
+	timeRow := qt6.NewQHBoxLayout2()
 	c.icon = qt6.NewQLabel2()
 	c.icon.SetPixmap(iconGames().Pixmap2(16, 16))
 	c.edit = newClockEdit()
@@ -48,8 +55,8 @@ func (a *App) buildClockRow() *qt6.QHBoxLayout {
 		c.edit.SetFocus()
 		super(event)
 	})
-	row.AddWidget(c.icon.QWidget)
-	row.AddWidget(c.edit.QWidget)
+	timeRow.AddWidget(c.icon.QWidget)
+	timeRow.AddWidget(c.edit.QWidget)
 
 	c.mode = qt6.NewQPushButton2()
 	c.mode.OnClicked(func() { a.toggleClockMode() })
@@ -57,11 +64,13 @@ func (a *App) buildClockRow() *qt6.QHBoxLayout {
 	c.reset.SetIcon(iconNamed("view-refresh", "view-refresh"))
 	c.reset.SetToolTip(a.tr.T("CLOCK_RESET"))
 	c.reset.OnClicked(func() { a.resetClock() })
-	row.AddWidget(c.mode.QWidget)
-	row.AddWidget(c.reset.QWidget)
+	timeRow.AddWidget(c.mode.QWidget)
+	timeRow.AddWidget(c.reset.QWidget)
 	a.refreshClockMode()
 	a.showSeconds(0)
-	return row
+	timeRow.AddStretch()
+
+	return timeRow
 }
 
 func newClockEdit() *qt6.QTimeEdit {
@@ -86,6 +95,30 @@ func stepClockSeconds(current, unit, steps int) int {
 		return clockMaxSeconds
 	}
 	return next
+}
+
+func clockPushDue(last, now time.Time) bool {
+	return last.IsZero() || now.Sub(last) >= clockPushEvery
+}
+
+// clockDisplayChanged reports that the second we would send is not the second
+// last written. A frozen clock rebases unix times and keeps the same second.
+// Compare the old pair at the time it was sent: at "now" those old timestamps
+// have already drifted, which is the drift this push is correcting.
+func clockDisplayChanged(countDown bool, sentAt time.Time, sentStart, sentEnd, start, end int64, now time.Time) bool {
+	if sentAt.IsZero() {
+		return true
+	}
+	sentShown := displayedSeconds(countDown, unixStamp(sentStart), unixStamp(sentEnd), sentAt)
+	nowShown := displayedSeconds(countDown, unixStamp(start), unixStamp(end), now)
+	return sentShown != nowShown
+}
+
+func unixStamp(sec int64) time.Time {
+	if sec == 0 {
+		return time.Time{}
+	}
+	return time.Unix(sec, 0)
 }
 
 func displayedSeconds(countDown bool, start, end, now time.Time) int {
@@ -348,11 +381,50 @@ func (a *App) refreshClockMode() {
 	c.mode.SetToolTip(a.tr.T("CLOCK_COUNT_UP"))
 }
 
+// pauseTick is the pause-timer branch of the elapsed callback.
+// A hidden status freezes the clock from the time field.
+// A visible status syncs timestamps when that status is the applied one.
+func pauseTick(pauseMode, hidden bool) (hold, syncWhenApplied bool) {
+	if !pauseMode {
+		return false, false
+	}
+	if hidden {
+		return true, false
+	}
+	return false, true
+}
+
+func (a *App) holdPausedClock() {
+	c := &a.clk
+	var shown int
+	if a.onAppliedGame() {
+		shown = a.clockSeconds()
+		c.held = shown
+		c.heldOK = true
+	} else if c.heldOK {
+		shown = c.held
+	} else {
+		return
+	}
+	a.rebaseClock(shown)
+}
+
 func (a *App) updateElapsed() {
 	c := &a.clk
 	if !c.running {
 		return
 	}
+	hold, syncWhenApplied := pauseTick(a.settings.PauseTimer, !a.settings.Activity)
+	if hold {
+		a.holdPausedClock()
+		// Hide from Discord already cleared the activity. Pause alone leaves it
+		// up, so the frozen timestamps have to be written or Discord counts on.
+		if !a.settings.HideDiscord {
+			a.syncAppliedClock()
+		}
+		return
+	}
+	c.heldOK = false
 	now := time.Now()
 	if c.down && !c.end.IsZero() && !now.Before(c.end) {
 		if a.onAppliedGame() && !a.clockEditing() {
@@ -363,6 +435,9 @@ func (a *App) updateElapsed() {
 	}
 	if a.onAppliedGame() && !a.clockEditing() {
 		a.showSeconds(a.liveSeconds())
+	}
+	if syncWhenApplied {
+		a.syncAppliedClock()
 	}
 }
 

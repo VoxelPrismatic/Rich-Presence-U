@@ -8,6 +8,7 @@ import (
 
 	"github.com/mappu/miqt/qt6"
 	"github.com/mappu/miqt/qt6/mainthread"
+	"github.com/voxelprismatic/richpresenceu/igdb"
 	"github.com/voxelprismatic/richpresenceu/locales"
 	"github.com/voxelprismatic/richpresenceu/nso"
 	"github.com/voxelprismatic/richpresenceu/svc"
@@ -27,6 +28,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 	box.AddLayout(head.QLayout)
 
 	_, locLay := newSettingsPane(a.tr.T("SETTINGS_LOCALIZATION"))
+	locForm := settingsForm(locLay)
 	a.langCombo = qt6.NewQComboBox2()
 	a.langCombo.AddItem3(a.tr.T("LANGUAGE_AUTO"), qt6.NewQVariant11(""))
 	for _, code := range localeCodes() {
@@ -39,7 +41,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 		a.settings.Language = a.langCombo.ItemData(i).ToString()
 		a.tr.Set(a.settings.Language)
 	})
-	addSettingsField(locLay, a.tr.T("LANGUAGE_TITLE"), a.langCombo.QWidget, nil)
+	addFormRow(locForm, 0, a.tr.T("LANGUAGE_TITLE"), a.langCombo.QWidget, nil)
 
 	a.prefRegion = qt6.NewQComboBox2()
 	a.prefRegion.AddItem3(a.tr.T("REGION_US"), qt6.NewQVariant11("US"))
@@ -56,16 +58,37 @@ func (a *App) buildSettings() *qt6.QWidget {
 			a.updateApply()
 		}
 	})
-	addSettingsField(locLay, a.tr.T("REGION_TITLE"), a.prefRegion.QWidget, nil)
+	addFormRow(locForm, 1, a.tr.T("REGION_TITLE"), a.prefRegion.QWidget, nil)
 
 	_, presLay := newSettingsPane(a.tr.T("SETTINGS_PRESENCE"))
-	a.autoConn = qt6.NewQCheckBox2()
-	a.autoConn.OnToggled(func(on bool) {
-		if !a.silent {
-			a.settings.AutoConnect = on
+	presForm := settingsForm(presLay)
+	a.autoConn = qt6.NewQComboBox2()
+	addAutoConnectItem(a.autoConn, a.tr.T("AUTOCONNECT_NEVER"), string(connectNever), a.tr.T("AUTOCONNECT_HINT_NEVER"))
+	addAutoConnectItem(a.autoConn, a.tr.T("AUTOCONNECT_STARTUP"), string(connectStartup), a.tr.T("AUTOCONNECT_HINT_STARTUP"))
+	addAutoConnectItem(a.autoConn, a.tr.T("AUTOCONNECT_POLL"), string(connectPoll), a.tr.T("AUTOCONNECT_HINT_POLL"))
+	if view := a.autoConn.View(); view != nil {
+		view.SetMouseTracking(true)
+	}
+	a.autoConnHelp = a.helpButton("")
+	a.autoConn.OnCurrentIndexChanged(func(i int) {
+		a.refreshAutoConnectHint()
+		if a.silent {
+			return
 		}
+		a.settings.AutoConnect = connectMode(a.autoConn.ItemData(i).ToString())
+		a.syncConnectPoll()
 	})
-	addSettingsCheck(presLay, a.tr.T("AUTOCONNECT_TITLE"), a.autoConn, a.helpButton(a.tr.T("AUTOCONNECT_HINT")))
+	a.autoConn.OnHighlighted(func(i int) {
+		if i < 0 {
+			return
+		}
+		a.autoConn.SetToolTip(a.tr.T(autoConnectHint(connectMode(a.autoConn.ItemData(i).ToString()))))
+	})
+	a.autoConn.OnHidePopup(func(super func()) {
+		super()
+		a.refreshAutoConnectHint()
+	})
+	addFormRow(presForm, 0, a.tr.T("AUTOCONNECT_TITLE"), a.autoConn.QWidget, a.autoConnHelp)
 
 	a.keepOn = qt6.NewQCheckBox2()
 	a.keepOn.OnToggled(func(on bool) {
@@ -74,7 +97,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 			a.refreshScreensaver()
 		}
 	})
-	addSettingsCheck(presLay, a.tr.T("KEEPON_TITLE"), a.keepOn, a.helpButton(a.tr.T("KEEPON_HINT")))
+	addFormRow(presForm, 1, a.tr.T("KEEPON_TITLE"), a.keepOn.QWidget, a.helpButton(a.tr.T("KEEPON_HINT")))
 
 	a.debugOn = qt6.NewQCheckBox2()
 	a.debugOn.OnToggled(func(on bool) {
@@ -83,13 +106,31 @@ func (a *App) buildSettings() *qt6.QWidget {
 			a.log.SetEnabled(on)
 		}
 	})
-	addSettingsCheck(presLay, a.tr.T("DEBUG_TITLE"), a.debugOn, a.helpButton(a.tr.T("DEBUG_HINT")))
+	addFormRow(presForm, 2, a.tr.T("DEBUG_TITLE"), a.debugOn.QWidget, a.helpButton(a.tr.T("DEBUG_HINT")))
+
+	hideWrap := qt6.NewQWidget2()
+	hideLay := qt6.NewQVBoxLayout(hideWrap)
+	hideLay.SetContentsMargins(0, 0, 0, 0)
+	hideLay.SetSpacing(2)
+	a.hidePause = qt6.NewQCheckBox4(a.tr.T("HIDE_PAUSE"), hideWrap)
+	a.hideDiscord = qt6.NewQCheckBox4(a.tr.T("HIDE_DISCORD"), hideWrap)
+	a.autoUnhide = qt6.NewQCheckBox4(a.tr.T("HIDE_AUTO_UNHIDE"), hideWrap)
+	a.hidePause.OnToggled(func(on bool) { a.setPauseTimer(on) })
+	a.hideDiscord.OnToggled(func(on bool) { a.setHideDiscord(on) })
+	a.autoUnhide.OnToggled(func(on bool) {
+		if !a.silent {
+			a.settings.AutoUnhide = on
+		}
+	})
+	hideLay.AddWidget(a.hidePause.QWidget)
+	hideLay.AddWidget(a.hideDiscord.QWidget)
+	hideLay.AddWidget(a.autoUnhide.QWidget)
+	addFormRow(presForm, 3, a.tr.T("HIDE_BEHAVIOR"), hideWrap, nil)
 
 	dataWrap := qt6.NewQWidget2()
 	dw := qt6.NewQHBoxLayout(dataWrap)
 	dw.SetContentsMargins(0, 0, 0, 0)
 	a.dataCombo = qt6.NewQComboBox2()
-	a.dataCombo.SetSizePolicy2(qt6.QSizePolicy__Expanding, qt6.QSizePolicy__Fixed)
 	a.dataCombo.AddItem4(iconNamed("action-unavailable", "action-unavailable-symbolic"), a.tr.T("DATA_SELECT"), qt6.NewQVariant11(""))
 	a.dataCombo.AddItem4(iconNamed("edit-clear-history", "edit-clear-history"), a.tr.T("RESET_CACHE_TITLE"), qt6.NewQVariant11("cache"))
 	a.dataCombo.AddItem4(iconNamed("user-trash", "albumfolder-user-trash"), a.tr.T("RESET_ALL_TITLE"), qt6.NewQVariant11("all"))
@@ -99,11 +140,15 @@ func (a *App) buildSettings() *qt6.QWidget {
 		a.dataBtn.SetIcon(a.dataCombo.ItemIcon(i))
 	})
 	a.dataBtn.OnClicked(func() { a.onDataAction() })
-	dw.AddWidget2(a.dataCombo.QWidget, 1)
+	dw.AddWidget(a.dataCombo.QWidget)
 	dw.AddWidget(a.dataBtn.QWidget)
-	addSettingsField(presLay, a.tr.T("DATA_TITLE"), dataWrap, a.helpButton(a.tr.T("DATA_HINT")))
+	dw.AddStretch()
+	addFormRow(presForm, 4, a.tr.T("DATA_TITLE"), dataWrap, a.helpButton(a.tr.T("DATA_HINT")))
 
 	_, igdbLay := newSettingsPane(a.tr.T("SETTINGS_GAME_SEARCH"))
+	intro := qt6.NewQLabel3(a.tr.T("IGDB_INTRO"))
+	intro.SetWordWrap(true)
+	igdbLay.AddWidget(intro.QWidget)
 	steps := linkLabel(locales.GameSearchInstructions(a.tr.T("IGDB_INSTRUCTIONS"), ""))
 	steps.SetWordWrap(true)
 	steps.SetAlignment(qt6.AlignLeft | qt6.AlignTop)
@@ -121,10 +166,9 @@ func (a *App) buildSettings() *qt6.QWidget {
 	igdbBtns.SetContentsMargins(0, 0, 0, 0)
 	testBtn := qt6.NewQPushButton3(a.tr.T("IGDB_TEST"))
 	testBtn.OnClicked(func() { a.testIGDB() })
-	consoleBtn := qt6.NewQPushButton3(a.tr.T("IGDB_CONSOLE"))
-	consoleBtn.OnClicked(func() { openURL("https://dev.twitch.tv/console/apps") })
+	a.igdbStatus = qt6.NewQLabel3(a.tr.T("IGDB_STATUS_UNTESTED"))
 	igdbBtns.AddWidget(testBtn.QWidget)
-	igdbBtns.AddWidget(consoleBtn.QWidget)
+	igdbBtns.AddWidget(a.igdbStatus.QWidget)
 	igdbBtns.AddStretch()
 	igdbLay.AddLayout(igdbBtns.QLayout)
 
@@ -170,6 +214,23 @@ func (a *App) buildSettings() *qt6.QWidget {
 	return page
 }
 
+func addAutoConnectItem(combo *qt6.QComboBox, label, value, hint string) {
+	combo.AddItem3(label, qt6.NewQVariant11(value))
+	combo.SetItemData2(combo.Count()-1, qt6.NewQVariant11(hint), int(qt6.ToolTipRole))
+}
+
+func (a *App) refreshAutoConnectHint() {
+	if a.autoConn == nil {
+		return
+	}
+	mode := connectMode(a.autoConn.ItemData(a.autoConn.CurrentIndex()).ToString())
+	tip := a.tr.T(autoConnectHint(mode))
+	a.autoConn.SetToolTip(tip)
+	if a.autoConnHelp != nil {
+		a.autoConnHelp.SetToolTip(tip)
+	}
+}
+
 func newSettingsPane(title string) (*qt6.QWidget, *qt6.QVBoxLayout) {
 	w := qt6.NewQWidget2()
 	lay := qt6.NewQVBoxLayout(w)
@@ -181,36 +242,18 @@ func newSettingsPane(title string) (*qt6.QWidget, *qt6.QVBoxLayout) {
 	return w, lay
 }
 
+func settingsForm(parent *qt6.QVBoxLayout) *qt6.QGridLayout {
+	g := newFormGrid(nil)
+	parent.AddLayout(g.QLayout)
+	return g
+}
+
 func settingsScroll(lay *qt6.QVBoxLayout) *qt6.QScrollArea {
 	scroll := qt6.NewQScrollArea2()
 	scroll.SetWidgetResizable(true)
 	scroll.SetFrameShape(qt6.QFrame__NoFrame)
 	scroll.SetWidget(lay.ParentWidget())
 	return scroll
-}
-
-func addSettingsField(parent *qt6.QVBoxLayout, title string, control *qt6.QWidget, help *qt6.QToolButton) {
-	row := qt6.NewQHBoxLayout2()
-	row.SetContentsMargins(0, 0, 0, 0)
-	row.AddWidget(qt6.NewQLabel3(title).QWidget)
-	if help != nil {
-		row.AddWidget(help.QWidget)
-	}
-	row.AddStretch()
-	parent.AddLayout(row.QLayout)
-	parent.AddWidget(control)
-}
-
-func addSettingsCheck(parent *qt6.QVBoxLayout, title string, box *qt6.QCheckBox, help *qt6.QToolButton) {
-	box.SetText(title)
-	row := qt6.NewQHBoxLayout2()
-	row.SetContentsMargins(0, 0, 0, 0)
-	row.AddWidget(box.QWidget)
-	if help != nil {
-		row.AddWidget(help.QWidget)
-	}
-	row.AddStretch()
-	parent.AddLayout(row.QLayout)
 }
 
 func (a *App) buildAboutTable() *qt6.QWidget {
@@ -283,9 +326,19 @@ func (a *App) loadSettingsIntoUI() {
 	a.silent = true
 	a.selectComboData(a.langCombo, a.settings.Language)
 	a.selectComboData(a.prefRegion, string(a.settings.Region))
-	a.autoConn.SetChecked(a.settings.AutoConnect)
+	a.selectComboData(a.autoConn, string(a.settings.AutoConnect))
 	a.keepOn.SetChecked(a.settings.KeepOn)
 	a.debugOn.SetChecked(a.settings.DebugLog)
+	if a.hidePause != nil {
+		a.hidePause.SetChecked(a.settings.PauseTimer)
+	}
+	if a.hideDiscord != nil {
+		a.hideDiscord.SetChecked(a.settings.HideDiscord)
+	}
+	if a.autoUnhide != nil {
+		a.autoUnhide.SetChecked(a.settings.AutoUnhide)
+	}
+	a.refreshAutoConnectHint()
 	if a.igdbID != nil {
 		a.igdbID.SetText(a.settings.IGDBClientID)
 	}
@@ -306,31 +359,63 @@ func (a *App) saveIGDBCredentials() {
 	if a.igdbSecret != nil {
 		secret = strings.TrimSpace(a.igdbSecret.Text())
 	}
+	if id == a.settings.IGDBClientID && secret == a.settings.IGDBClientSecret {
+		return
+	}
 	a.settings.IGDBClientID = id
 	a.settings.IGDBClientSecret = secret
 	if a.igdbAPI != nil {
 		a.igdbAPI.SetCredentials(id, secret)
 	}
+	a.setIGDBStatus(a.tr.T("IGDB_STATUS_UNTESTED"))
 	a.persist()
+}
+
+func (a *App) setIGDBStatus(text string) {
+	if a.igdbStatus != nil {
+		a.igdbStatus.SetText(text)
+	}
+}
+
+func (a *App) igdbFailText(err error) string {
+	switch igdb.Classify(err) {
+	case igdb.FailTimeout:
+		return a.tr.T("IGDB_TEST_TIMEOUT")
+	case igdb.FailUnauthorized:
+		return a.tr.T("IGDB_TEST_UNAUTHORIZED")
+	default:
+		return a.tr.T("IGDB_TEST_FAIL")
+	}
+}
+
+func (a *App) finishIGDBTest(err error) {
+	if err == nil {
+		a.setIGDBStatus(a.tr.T("IGDB_STATUS_OK"))
+		return
+	}
+	a.debug("igdb ping: %v", err)
+	a.setIGDBStatus(a.tr.T("IGDB_STATUS_FAIL"))
+	qt6.QMessageBox_Warning(a.win.QWidget, a.tr.T("IGDB_TITLE"), popupText(a.igdbFailText(err)))
 }
 
 func (a *App) testIGDB() {
 	a.saveIGDBCredentials()
-	if a.igdbAPI == nil || !a.igdbAPI.Configured() {
-		qt6.QMessageBox_Warning(a.win.QWidget, a.tr.T("IGDB_TITLE"), popupText(a.tr.T("IGDB_TEST_FAIL")))
+	if a.igdbAPI == nil {
+		a.finishIGDBTest(igdb.ErrNoCredentials)
 		return
 	}
+	a.igdbTestGen++
+	gen := a.igdbTestGen
+	api := a.igdbAPI
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 		defer cancel()
-		err := a.igdbAPI.Ping(ctx)
+		err := api.Ping(ctx)
 		mainthread.Start(func() {
-			if err != nil {
-				a.debug("igdb ping: %v", err)
-				qt6.QMessageBox_Warning(a.win.QWidget, a.tr.T("IGDB_TITLE"), popupText(a.tr.T("IGDB_TEST_FAIL")))
+			if gen != a.igdbTestGen {
 				return
 			}
-			qt6.QMessageBox_Information(a.win.QWidget, a.tr.T("IGDB_TITLE"), popupText(a.tr.T("IGDB_TEST_OK")))
+			a.finishIGDBTest(err)
 		})
 	}()
 }

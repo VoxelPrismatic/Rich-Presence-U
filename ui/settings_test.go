@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/voxelprismatic/richpresenceu/nso"
 )
@@ -61,6 +62,89 @@ func TestPrefsMigrateHACKey(t *testing.T) {
 	}
 	if _, ok := pf.Platforms["NS1"]; !ok {
 		t.Fatalf("saved keys %v", pf.Platforms)
+	}
+}
+
+func TestConnectPollInterval(t *testing.T) {
+	if connectPollEvery != 5*time.Second {
+		t.Fatal(connectPollEvery)
+	}
+}
+
+func TestAutoConnectLegacyBool(t *testing.T) {
+	var s Settings
+	if err := json.Unmarshal([]byte(`{"auto_connect": true}`), &s); err != nil {
+		t.Fatal(err)
+	}
+	if s.AutoConnect != connectStartup {
+		t.Fatalf("true = %q", s.AutoConnect)
+	}
+	if err := json.Unmarshal([]byte(`{"auto_connect": false}`), &s); err != nil {
+		t.Fatal(err)
+	}
+	if s.AutoConnect != connectNever {
+		t.Fatalf("false = %q", s.AutoConnect)
+	}
+	if err := json.Unmarshal([]byte(`{"auto_connect": "poll"}`), &s); err != nil {
+		t.Fatal(err)
+	}
+	if s.AutoConnect != connectPoll {
+		t.Fatalf("poll = %q", s.AutoConnect)
+	}
+	s = normalizeSettings(Settings{Platform: "NS1", AutoConnect: "nope"})
+	if s.AutoConnect != connectNever {
+		t.Fatalf("unknown = %q", s.AutoConnect)
+	}
+}
+
+func TestPrefsKeepPlatformsWhenAutoConnectIsBool(t *testing.T) {
+	dir := t.TempDir()
+	raw := []byte(`{"auto_connect": true, "platform": "NS1", "region": "US", "platforms": {"NS1": {"game": "1", "library": {}}}}`)
+	if err := os.WriteFile(prefsPath(dir), raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s, systems := loadPrefs(dir)
+	if s.AutoConnect != connectStartup {
+		t.Fatalf("mode %q", s.AutoConnect)
+	}
+	st := systems["NS1"]
+	if st == nil || st.Game != "1" {
+		t.Fatalf("platforms %+v", systems)
+	}
+}
+
+func TestApplyLegacyHide(t *testing.T) {
+	s := defaultSettings()
+	applyLegacyHide(&s, []byte(`{"hide_behavior":"pause"}`))
+	if !s.PauseTimer || s.HideDiscord {
+		t.Fatalf("pause %+v", s.PauseTimer)
+	}
+	s = defaultSettings()
+	applyLegacyHide(&s, []byte(`{"hide_behavior":"discord"}`))
+	if s.PauseTimer || !s.HideDiscord {
+		t.Fatalf("discord pause %v hide %v", s.PauseTimer, s.HideDiscord)
+	}
+	s = Settings{PauseTimer: true, HideDiscord: true}
+	applyLegacyHide(&s, []byte(`{"pause_timer":true,"hide_discord":true,"hide_behavior":"pause"}`))
+	if !s.PauseTimer || !s.HideDiscord {
+		t.Fatalf("both %+v", s)
+	}
+	s = Settings{}
+	applyLegacyHide(&s, []byte(`{"pause_timer":false,"hide_discord":false}`))
+	if s.PauseTimer || s.HideDiscord {
+		t.Fatalf("explicit off %+v", s)
+	}
+}
+
+func TestAutoConnectHint(t *testing.T) {
+	if autoConnectHint(connectNever) != "AUTOCONNECT_HINT_NEVER" {
+		t.Fatal(autoConnectHint(connectNever))
+	}
+	if autoConnectHint(connectStartup) != "AUTOCONNECT_HINT_STARTUP" {
+		t.Fatal(autoConnectHint(connectStartup))
+	}
+	if autoConnectHint(connectPoll) != "AUTOCONNECT_HINT_POLL" {
+		t.Fatal(autoConnectHint(connectPoll))
 	}
 }
 

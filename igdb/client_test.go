@@ -2,6 +2,8 @@ package igdb
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -71,7 +73,35 @@ func TestPingRequiresCredentials(t *testing.T) {
 	if c.Configured() {
 		t.Fatal("empty client")
 	}
-	if err := c.Ping(context.Background()); err == nil {
-		t.Fatal("expected error")
+	err := c.Ping(context.Background())
+	if !errors.Is(err, ErrNoCredentials) {
+		t.Fatal(err)
+	}
+	if Classify(err) != FailUnauthorized {
+		t.Fatal(Classify(err))
+	}
+}
+
+func TestClassifyPing(t *testing.T) {
+	if Classify(nil) != "" {
+		t.Fatal("nil")
+	}
+	if Classify(fmt.Errorf("igdb token: %w", context.DeadlineExceeded)) != FailTimeout {
+		t.Fatal("timeout")
+	}
+	if Classify(&statusError{op: "igdb token", status: 401}) != FailUnauthorized {
+		t.Fatal("401")
+	}
+	if Classify(&statusError{op: "igdb token", status: 400}) != FailUnauthorized {
+		t.Fatal("400")
+	}
+	if Classify(&statusError{op: "igdb token", status: 403}) != FailUnauthorized {
+		t.Fatal("403")
+	}
+	if Classify(&statusError{op: "igdb token", status: 408}) != FailTimeout {
+		t.Fatal("408")
+	}
+	if Classify(&statusError{op: "igdb token", status: 500}) != FailOther {
+		t.Fatal("500")
 	}
 }
