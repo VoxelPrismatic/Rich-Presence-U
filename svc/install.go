@@ -152,17 +152,17 @@ func InstallTo(ctx context.Context, configDir, appsDir string) error {
 }
 
 func ApplyUpdate(ctx context.Context, configDir, latest string) (string, error) {
-	return ApplyUpdateTo(ctx, configDir, ApplicationsDir(), latest)
+	return ApplyUpdateTo(ctx, configDir, ApplicationsDir(), latest, nil)
 }
 
-func ApplyUpdateTo(ctx context.Context, configDir, appsDir, latest string) (string, error) {
+func ApplyUpdateTo(ctx context.Context, configDir, appsDir, latest string, progress DownloadProgress) (string, error) {
 	tag := latest
 	if !strings.HasPrefix(tag, "v") {
 		tag = "v" + tag
 	}
 	bin := LauncherPath(configDir)
 	url := githubBase + "/releases/download/" + tag + "/" + ReleaseAsset()
-	if err := downloadToFile(ctx, url, bin, 0o755); err != nil {
+	if err := downloadToFile(ctx, url, bin, 0o755, progress); err != nil {
 		return "", fmt.Errorf("binary: %w", err)
 	}
 	if err := writeSidecars(ctx, configDir, appsDir, bin, latest); err != nil {

@@ -1,11 +1,13 @@
 package svc
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -130,5 +132,68 @@ func TestLatestVersion(t *testing.T) {
 	}
 	if got != "2.8.0" {
 		t.Fatalf("got %q", got)
+	}
+}
+
+func TestDownloadToFileProgress(t *testing.T) {
+	body := bytes.Repeat([]byte("abc"), 1000)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+		w.Write(body)
+	}))
+	t.Cleanup(srv.Close)
+
+	dst := filepath.Join(t.TempDir(), "app")
+	var lastW, lastT int64
+	var calls int
+	err := downloadToFile(context.Background(), srv.URL+"/rich-presence-qt_linux", dst, 0o755, func(written, total int64) {
+		calls++
+		lastW, lastT = written, total
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if calls < 2 || lastW != int64(len(body)) || lastT != int64(len(body)) {
+		t.Fatalf("progress calls %d written %d total %d", calls, lastW, lastT)
+	}
+	got, err := os.ReadFile(dst)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, body) {
+		t.Fatalf("file length %d", len(got))
+	}
+	st, err := os.Stat(dst)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Mode().Perm() != 0o755 {
+		t.Fatalf("mode %o", st.Mode().Perm())
+	}
+}
+
+func TestDownloadToFileCancel(t *testing.T) {
+	started := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", "100000")
+		w.Write(bytes.Repeat([]byte("a"), 64))
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		close(started)
+		<-r.Context().Done()
+	}))
+	t.Cleanup(srv.Close)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	dst := filepath.Join(t.TempDir(), "app")
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- downloadToFile(ctx, srv.URL+"/rich-presence-qt_linux", dst, 0o755, nil)
+	}()
+	<-started
+	cancel()
+	if err := <-errCh; err == nil {
+		t.Fatal("expected cancel")
 	}
 }

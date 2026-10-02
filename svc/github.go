@@ -143,7 +143,11 @@ func fetchAsset(ctx context.Context, version, name string) ([]byte, error) {
 	return nil, last
 }
 
-func downloadToFile(ctx context.Context, rawURL, dst string, mode os.FileMode) error {
+// DownloadProgress reports bytes written. total is negative when the server
+// does not send a length.
+type DownloadProgress func(written, total int64)
+
+func downloadToFile(ctx context.Context, rawURL, dst string, mode os.FileMode, progress DownloadProgress) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
 		return err
@@ -165,15 +169,38 @@ func downloadToFile(ctx context.Context, rawURL, dst string, mode os.FileMode) e
 	if err != nil {
 		return err
 	}
-	_, copyErr := io.Copy(f, resp.Body)
-	closeErr := f.Close()
-	if copyErr != nil {
+	fail := func(cause error) error {
+		f.Close()
 		os.Remove(tmp)
-		return copyErr
+		return cause
 	}
-	if closeErr != nil {
+	total := resp.ContentLength
+	var written int64
+	if progress != nil {
+		progress(0, total)
+	}
+	buf := make([]byte, 32*1024)
+	for {
+		n, rerr := resp.Body.Read(buf)
+		if n > 0 {
+			if _, werr := f.Write(buf[:n]); werr != nil {
+				return fail(werr)
+			}
+			written += int64(n)
+			if progress != nil {
+				progress(written, total)
+			}
+		}
+		if rerr == io.EOF {
+			break
+		}
+		if rerr != nil {
+			return fail(rerr)
+		}
+	}
+	if err := f.Close(); err != nil {
 		os.Remove(tmp)
-		return closeErr
+		return err
 	}
 	if err := os.Rename(tmp, dst); err != nil {
 		os.Remove(tmp)

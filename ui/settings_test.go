@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -94,6 +95,39 @@ func TestAutoConnectLegacyBool(t *testing.T) {
 	s = normalizeSettings(Settings{Platform: "NS1", AutoConnect: "nope"})
 	if s.AutoConnect != connectNever {
 		t.Fatalf("unknown = %q", s.AutoConnect)
+	}
+}
+
+func TestTestUpdatePref(t *testing.T) {
+	dir := t.TempDir()
+	raw := []byte(`{"test_update": true, "platform": "NS1", "region": "US", "platforms": {"NS1": {"game": "1", "library": {}}}}`)
+	if err := os.WriteFile(prefsPath(dir), raw, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s, systems := loadPrefs(dir)
+	if !s.TestUpdate {
+		t.Fatal("test_update should load")
+	}
+	if err := savePrefs(dir, s, systems); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(prefsPath(dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(b, []byte(`"test_update": true`)) {
+		t.Fatalf("saved prefs: %s", b)
+	}
+	s.TestUpdate = false
+	if err := savePrefs(dir, s, systems); err != nil {
+		t.Fatal(err)
+	}
+	b, err = os.ReadFile(prefsPath(dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(b, []byte("test_update")) {
+		t.Fatalf("false test_update should be omitted: %s", b)
 	}
 }
 
