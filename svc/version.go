@@ -8,7 +8,7 @@ import (
 )
 
 // VERSION is the running app version. Bump this for releases.
-const VERSION = "2.9.0"
+const VERSION = "2.9.1"
 
 var VERSION_PARTS = strings.Split(VERSION, ".")
 var MAJOR, _ = strconv.Atoi(VERSION_PARTS[0])

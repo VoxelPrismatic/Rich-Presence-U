@@ -62,6 +62,46 @@ if [ -z "$plugins" ]; then
 	exit 1
 fi
 
+# Homebrew installs each Qt module into its own keg, then links the
+# frameworks into $(brew --prefix)/lib. macdeployqt does not search that
+# directory. It resolves @rpath against qtbase/lib, ./lib, and
+# Contents/lib. Stage those two paths so the lookup sees the linked libs
+# and the webp dylibs, then remove the stage so the zip does not keep it.
+# libwebp and libsharpyuv stay dynamically linked inside Frameworks.
+homebrew_lib="$(brew --prefix)/lib"
+webp_lib="$(brew --prefix webp)/lib"
+repo_lib="$PWD/lib"
+created_repo_lib=0
+stage_link_dir() {
+	local dest="$1"
+	local dir f base
+	mkdir -p "$dest"
+	for dir in "$homebrew_lib" "$webp_lib"; do
+		[ -d "$dir" ] || continue
+		for f in "$dir"/*; do
+			[ -e "$f" ] || continue
+			base="$(basename "$f")"
+			if [ ! -e "$dest/$base" ]; then
+				ln -s "$f" "$dest/$base"
+			fi
+		done
+	done
+}
+if [ ! -e "$repo_lib" ]; then
+	stage_link_dir "$repo_lib"
+	created_repo_lib=1
+fi
+mkdir -p "$app/Contents"
+rm -rf "$app/Contents/lib"
+stage_link_dir "$app/Contents/lib"
+cleanup_deploy_links() {
+	rm -rf "$app/Contents/lib"
+	if [ "$created_repo_lib" = 1 ]; then
+		rm -rf "$repo_lib"
+	fi
+}
+trap cleanup_deploy_links EXIT
+
 "$macdeployqt" "$app" -always-overwrite
 
 # Covers are JPEG. Icons are SVG. Copy any of those plugins macdeployqt
@@ -103,6 +143,32 @@ for rel in "${require[@]}"; do
 		exit 1
 	fi
 done
+
+cleanup_deploy_links
+trap - EXIT
+
+# macdeployqt leaves these as @rpath and then cannot see them. Copy the
+# shared libraries into the bundle and point every binary at that copy.
+frameworks="$app/Contents/Frameworks"
+mkdir -p "$frameworks"
+for name in libsharpyuv.0.dylib libwebp.7.dylib; do
+	src="$webp_lib/$name"
+	if [ ! -f "$src" ]; then
+		echo "missing $src" >&2
+		exit 1
+	fi
+	cp -L "$src" "$frameworks/$name"
+	chmod u+w "$frameworks/$name"
+	install_name_tool -id "@executable_path/../Frameworks/$name" "$frameworks/$name"
+done
+install_name_tool -change "@rpath/libsharpyuv.0.dylib" "@executable_path/../Frameworks/libsharpyuv.0.dylib" "$frameworks/libwebp.7.dylib" || true
+while IFS= read -r -d '' bin; do
+	if ! file "$bin" | grep -q 'Mach-O'; then
+		continue
+	fi
+	install_name_tool -change "@rpath/libsharpyuv.0.dylib" "@executable_path/../Frameworks/libsharpyuv.0.dylib" "$bin" || true
+	install_name_tool -change "@rpath/libwebp.7.dylib" "@executable_path/../Frameworks/libwebp.7.dylib" "$bin" || true
+done < <(find "$app" -type f -print0)
 
 # A Homebrew path here means the bundle still needs the build machine.
 if otool -L "$app/Contents/MacOS/rich-presence-qt" "$app/Contents/PlugIns/platforms/libqcocoa.dylib" "$app/Contents/PlugIns/iconengines/libqsvgicon.dylib" | grep -E '/opt/homebrew|/usr/local/opt'; then
