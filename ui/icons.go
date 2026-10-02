@@ -32,8 +32,17 @@ func iconNamed(themeName, breezeName string) *qt6.QIcon {
 	return pickIcon("actions", breezeName, themeName)
 }
 
+var goNextIcon *qt6.QIcon
+
 func iconGoNext() *qt6.QIcon {
-	return pickIcon("actions", "go-next", "go-next", "arrow-right")
+	if goNextIcon == nil {
+		goNextIcon = pickIcon("actions", "go-next", "go-next", "arrow-right")
+	}
+	return goNextIcon
+}
+
+func clearIconCache() {
+	goNextIcon = nil
 }
 
 func iconShop() *qt6.QIcon {
@@ -48,12 +57,13 @@ func iconFind() *qt6.QIcon {
 	return pickIcon("actions", "edit-find", "edit-find")
 }
 
-func helpButton(tip string) *qt6.QToolButton {
+func (a *App) helpButton(tip string) *qt6.QToolButton {
 	b := qt6.NewQToolButton2()
 	b.SetIcon(iconHelp())
 	b.SetAutoRaise(true)
 	b.SetToolTip(tip)
 	b.SetFocusPolicy(qt6.NoFocus)
 	b.SetCursor(qt6.NewQCursor2(qt6.WhatsThisCursor))
+	a.helpBtns = append(a.helpBtns, b)
 	return b
 }

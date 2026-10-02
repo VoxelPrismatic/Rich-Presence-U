@@ -26,7 +26,7 @@ i'm not fond of the original UI, so I want to make it mirror the discord UI a bi
         - Option: Europe
         - Option: Japan
     - qt: hbox
-      - qt: icon "folder-public" assets/breeze/places/folder-public.svg
+      - qt: icon "folder-public" assets/light/places/folder-public.svg
       - qt: drop down
         - title: Short description
         - option: (Friend code) (use actual friend code string)
@@ -41,7 +41,7 @@ i'm not fond of the original UI, so I want to make it mirror the discord UI a bi
         - qt: label "of"
         - qt: number with scroller
     - qt: hbox
-      - qt: icon "folder-games" assets/breeze/places/folder-games.svg
+      - qt: icon "folder-games" assets/light/places/folder-games.svg
       - qt: label "12:34"
 - settings screen: qt vbox
   - qt: hbox
@@ -60,7 +60,7 @@ i'm not fond of the original UI, so I want to make it mirror the discord UI a bi
     - qt: label "Check for new titles"
     - qt: spacer
     - qt: button (refresh)
-      - icon: "view refresh" assets/breeze/actions/view-refresh.svg
+      - icon: "view refresh" assets/light/actions/view-refresh.svg
     - qt: drop down
       - Every 12 hours
       - Every day
@@ -94,9 +94,9 @@ i'm not fond of the original UI, so I want to make it mirror the discord UI a bi
       - option: Clear cache
       - option: Reset all data
     - qt: button
-      - icon for "Select one" - "action-unavailable-symbolic" assets/breeze/actions/action-unavailable-symbolic.svg
-      - icon for "Clear cache" - "edit-clear-history" assets/breeze/actions/edit-clear-history.svg
-      - icon for "Reset all data" - "albumfolder-user-trash" assets/breeze/actions/albumfolder-user-trash.svg
+      - icon for "Select one" - "action-unavailable-symbolic" assets/light/actions/action-unavailable-symbolic.svg
+      - icon for "Clear cache" - "edit-clear-history" assets/light/actions/edit-clear-history.svg
+      - icon for "Reset all data" - "albumfolder-user-trash" assets/light/actions/albumfolder-user-trash.svg
   - qt: separator
   - qt: table
     - Version | (n) (link to changelog)
@@ -138,29 +138,29 @@ i'm not fond of the original UI, so I want to make it mirror the discord UI a bi
     - qt: spacer
     - qt: button
       - disconnected from discord
-        - icon: "network-disconnected" assets/breeze/actions/network-disconnect.svg
+        - icon: "network-disconnected" assets/light/actions/network-disconnect.svg
         - title: "Connect to Discord"
       - connecting to discord
         - disabled
-        - icon: "network-connect" assets/breeze/actions/network-connect.svg
+        - icon: "network-connect" assets/light/actions/network-connect.svg
         - title "Connecting to Discord..."
       - no changes to apply
         - disabled
-        - icon: "checkmark" assets/breeze/actions/checkmark.svg
+        - icon: "checkmark" assets/light/actions/checkmark.svg
         - title "No pending changes"
       - changes pending
-        - icon: "document-save" assets/breeze/actions/document-save.svg
+        - icon: "document-save" assets/light/actions/document-save.svg
         - title "Apply status on Discord"
     - qt: button
-      - icon: "chronometer" assets/breeze/actions/chronometer.svg
+      - icon: "chronometer" assets/light/actions/chronometer.svg
       - title "Status duration"
     - qt: button
       - visibility enabled
-        - icon: "view-visible" assets/breeze/actions/view-visible.svg
+        - icon: "view-visible" assets/light/actions/view-visible.svg
         - title "Status enabled"
       - visibility disabled
-        - icon: "view-visible-off" assets/breeze/actions/view-visible-off.svg
+        - icon: "view-visible-off" assets/light/actions/view-visible-off.svg
         - title "Status disabled"
     - qt: button
-      - icon: "configure" assets/breeze/actions/configure.svg
+      - icon: "configure" assets/light/actions/configure.svg
       - title "Configure"

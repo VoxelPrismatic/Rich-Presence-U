@@ -72,16 +72,20 @@ type App struct {
 	visBtn        *qt6.QPushButton
 	cfgBtn        *qt6.QPushButton
 
-	langCombo  *qt6.QComboBox
-	prefRegion *qt6.QComboBox
-	autoConn   *qt6.QCheckBox
-	keepOn     *qt6.QCheckBox
-	debugOn    *qt6.QCheckBox
-	igdbID     *qt6.QLineEdit
-	igdbSecret *qt6.QLineEdit
-	dataCombo  *qt6.QComboBox
-	dataBtn    *qt6.QPushButton
-	aboutTable *qt6.QTableWidget
+	langCombo    *qt6.QComboBox
+	prefRegion   *qt6.QComboBox
+	autoConn     *qt6.QCheckBox
+	keepOn       *qt6.QCheckBox
+	debugOn      *qt6.QCheckBox
+	igdbID       *qt6.QLineEdit
+	igdbSecret   *qt6.QLineEdit
+	dataCombo    *qt6.QComboBox
+	dataBtn      *qt6.QPushButton
+	settingsBack *qt6.QPushButton
+	descIcon     *qt6.QLabel
+	platFind     *qt6.QAction
+	helpBtns     []*qt6.QToolButton
+	aboutTable   *qt6.QTableWidget
 
 	searchTimer     *qt6.QTimer
 	searchHits      []nso.Game

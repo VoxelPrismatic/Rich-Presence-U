@@ -95,7 +95,7 @@ func (a *App) buildPlatPopup() {
 	search := qt6.NewQLineEdit(header)
 	search.SetPlaceholderText(a.tr.T("PLATFORM_SEARCH"))
 	search.SetClearButtonEnabled(true)
-	search.AddAction2(iconFind(), qt6.QLineEdit__LeadingPosition)
+	a.platFind = search.AddAction2(iconFind(), qt6.QLineEdit__LeadingPosition)
 	sp := search.Palette()
 	sp.SetColor2(qt6.QPalette__Base, sp.ColorWithCr(qt6.QPalette__Base))
 	search.SetPalette(sp)
@@ -179,7 +179,6 @@ func (a *App) buildPlatPopup() {
 }
 
 func newPlatRowDelegate(parent *qt6.QObject) *qt6.QStyledItemDelegate {
-	arrow := iconGoNext()
 	d := qt6.NewQStyledItemDelegate2(parent)
 	d.OnPaint(func(super func(painter *qt6.QPainter, option *qt6.QStyleOptionViewItem, index *qt6.QModelIndex), painter *qt6.QPainter, option *qt6.QStyleOptionViewItem, index *qt6.QModelIndex) {
 		orig := option.Rect()
@@ -188,7 +187,7 @@ func newPlatRowDelegate(parent *qt6.QObject) *qt6.QStyledItemDelegate {
 			option.SetRect(*clipped)
 			super(painter, option, index)
 			if platRowHasArrow(index) {
-				pix := arrow.Pixmap2(16, 16)
+				pix := iconGoNext().Pixmap2(16, 16)
 				x := orig.Right() - 18
 				y := orig.Center().Y() - 8
 				painter.DrawPixmap9(x, y, pix)
