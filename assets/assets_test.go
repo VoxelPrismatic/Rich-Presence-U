@@ -1,13 +1,14 @@
 package assets
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
-func TestBreezeDir(t *testing.T) {
-	root := BreezeDir()
+func TestIconRoot(t *testing.T) {
+	root := IconRoot()
 	if root == "" {
 		t.Fatal("empty")
 	}
@@ -38,13 +39,32 @@ func TestBreezeDir(t *testing.T) {
 			"folder-public.svg",
 		},
 	}
-	for kind, names := range required {
-		for _, name := range names {
-			p := filepath.Join(root, kind, name)
-			st, err := os.Stat(p)
-			if err != nil || st.Size() == 0 {
-				t.Fatalf("%s: %v", p, err)
+	for _, scheme := range []string{"light", "dark"} {
+		for kind, names := range required {
+			for _, name := range names {
+				p := filepath.Join(root, scheme, kind, name)
+				st, err := os.Stat(p)
+				if err != nil || st.Size() == 0 {
+					t.Fatalf("%s: %v", p, err)
+				}
 			}
 		}
+	}
+	light, err := os.ReadFile(filepath.Join(root, "light", "actions", "checkmark.svg"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dark, err := os.ReadFile(filepath.Join(root, "dark", "actions", "checkmark.svg"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Equal(light, dark) {
+		t.Fatal("dark checkmark matches light")
+	}
+	if !bytes.Contains(light, []byte("#232629")) {
+		t.Fatal("light checkmark is missing the Breeze light text color")
+	}
+	if !bytes.Contains(dark, []byte("#fcfcfc")) {
+		t.Fatal("dark checkmark is missing the Breeze dark text color")
 	}
 }

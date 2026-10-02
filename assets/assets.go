@@ -8,39 +8,36 @@ import (
 	"sync"
 )
 
-// Breeze icons (KDE Breeze, LGPL) used when a system icon theme is missing.
+// Breeze icons (KDE Breeze, LGPL). light/ is for a light UI and dark/ is for a dark UI.
 
-//go:embed breeze
-var breezeFS embed.FS
+//go:embed light dark
+var iconFS embed.FS
 
 var (
 	once sync.Once
 	dir  string
 )
 
-// BreezeDir extracts bundled Breeze SVGs into a temp directory and returns it.
-func BreezeDir() string {
+// IconRoot extracts the bundled light and dark Breeze SVGs into a temp directory.
+// The directory contains light/ and dark/, each with actions/ and places/.
+func IconRoot() string {
 	once.Do(func() {
-		root, err := os.MkdirTemp("", "rpqt-breeze-")
+		root, err := os.MkdirTemp("", "rpqt-icons-")
 		if err != nil {
 			return
 		}
-		err = fs.WalkDir(breezeFS, "breeze", func(path string, d fs.DirEntry, err error) error {
+		err = fs.WalkDir(iconFS, ".", func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
-			rel, err := filepath.Rel("breeze", path)
-			if err != nil {
-				return err
+			if path == "." {
+				return nil
 			}
-			dst := filepath.Join(root, rel)
+			dst := filepath.Join(root, path)
 			if d.IsDir() {
-				if rel == "." {
-					return nil
-				}
 				return os.MkdirAll(dst, 0o755)
 			}
-			b, err := breezeFS.ReadFile(path)
+			b, err := iconFS.ReadFile(path)
 			if err != nil {
 				return err
 			}
