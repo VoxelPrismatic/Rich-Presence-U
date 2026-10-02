@@ -8,6 +8,7 @@ import (
 
 	"github.com/mappu/miqt/qt6"
 	"github.com/mappu/miqt/qt6/mainthread"
+	"github.com/voxelprismatic/richpresenceu/igdb"
 	"github.com/voxelprismatic/richpresenceu/locales"
 	"github.com/voxelprismatic/richpresenceu/nso"
 	"github.com/voxelprismatic/richpresenceu/svc"
@@ -106,11 +107,13 @@ func (a *App) buildSettings() *qt6.QWidget {
 	addFormRow(presForm, 3, a.tr.T("DATA_TITLE"), dataWrap, a.helpButton(a.tr.T("DATA_HINT")))
 
 	_, igdbLay := newSettingsPane(a.tr.T("SETTINGS_GAME_SEARCH"))
+	intro := qt6.NewQLabel3(a.tr.T("IGDB_INTRO"))
+	intro.SetWordWrap(true)
+	igdbLay.AddWidget(intro.QWidget)
 	steps := linkLabel(locales.GameSearchInstructions(a.tr.T("IGDB_INSTRUCTIONS"), ""))
 	steps.SetWordWrap(true)
 	steps.SetAlignment(qt6.AlignLeft | qt6.AlignTop)
 	igdbLay.AddWidget(steps.QWidget)
-	igdbForm := settingsForm(igdbLay)
 	a.igdbID = qt6.NewQLineEdit2()
 	a.igdbID.SetPlaceholderText(a.tr.T("IGDB_CLIENT_ID"))
 	a.igdbID.OnEditingFinished(func() { a.saveIGDBCredentials() })
@@ -118,19 +121,17 @@ func (a *App) buildSettings() *qt6.QWidget {
 	a.igdbSecret.SetPlaceholderText(a.tr.T("IGDB_CLIENT_SECRET"))
 	a.igdbSecret.SetEchoMode(qt6.QLineEdit__Password)
 	a.igdbSecret.OnEditingFinished(func() { a.saveIGDBCredentials() })
-	addFormRow(igdbForm, 0, a.tr.T("IGDB_CLIENT_ID"), a.igdbID.QWidget, nil)
-	addFormRow(igdbForm, 1, a.tr.T("IGDB_CLIENT_SECRET"), a.igdbSecret.QWidget, nil)
-	igdbBtns := qt6.NewQWidget2()
-	igdbLayBtns := qt6.NewQHBoxLayout(igdbBtns)
-	igdbLayBtns.SetContentsMargins(0, 0, 0, 0)
+	igdbLay.AddWidget(a.igdbID.QWidget)
+	igdbLay.AddWidget(a.igdbSecret.QWidget)
+	igdbBtns := qt6.NewQHBoxLayout2()
+	igdbBtns.SetContentsMargins(0, 0, 0, 0)
 	testBtn := qt6.NewQPushButton3(a.tr.T("IGDB_TEST"))
 	testBtn.OnClicked(func() { a.testIGDB() })
-	consoleBtn := qt6.NewQPushButton3(a.tr.T("IGDB_CONSOLE"))
-	consoleBtn.OnClicked(func() { openURL("https://dev.twitch.tv/console/apps") })
-	igdbLayBtns.AddWidget(testBtn.QWidget)
-	igdbLayBtns.AddWidget(consoleBtn.QWidget)
-	igdbLayBtns.AddStretch()
-	addFormRow(igdbForm, 2, "", igdbBtns, nil)
+	a.igdbStatus = qt6.NewQLabel3(a.tr.T("IGDB_STATUS_UNTESTED"))
+	igdbBtns.AddWidget(testBtn.QWidget)
+	igdbBtns.AddWidget(a.igdbStatus.QWidget)
+	igdbBtns.AddStretch()
+	igdbLay.AddLayout(igdbBtns.QLayout)
 
 	_, creditsLay := newSettingsPane(a.tr.T("ABOUT_CREDITS"))
 	creditsLay.AddWidget(a.buildAboutTable())
@@ -292,31 +293,63 @@ func (a *App) saveIGDBCredentials() {
 	if a.igdbSecret != nil {
 		secret = strings.TrimSpace(a.igdbSecret.Text())
 	}
+	if id == a.settings.IGDBClientID && secret == a.settings.IGDBClientSecret {
+		return
+	}
 	a.settings.IGDBClientID = id
 	a.settings.IGDBClientSecret = secret
 	if a.igdbAPI != nil {
 		a.igdbAPI.SetCredentials(id, secret)
 	}
+	a.setIGDBStatus(a.tr.T("IGDB_STATUS_UNTESTED"))
 	a.persist()
+}
+
+func (a *App) setIGDBStatus(text string) {
+	if a.igdbStatus != nil {
+		a.igdbStatus.SetText(text)
+	}
+}
+
+func (a *App) igdbFailText(err error) string {
+	switch igdb.Classify(err) {
+	case igdb.FailTimeout:
+		return a.tr.T("IGDB_TEST_TIMEOUT")
+	case igdb.FailUnauthorized:
+		return a.tr.T("IGDB_TEST_UNAUTHORIZED")
+	default:
+		return a.tr.T("IGDB_TEST_FAIL")
+	}
+}
+
+func (a *App) finishIGDBTest(err error) {
+	if err == nil {
+		a.setIGDBStatus(a.tr.T("IGDB_STATUS_OK"))
+		return
+	}
+	a.debug("igdb ping: %v", err)
+	a.setIGDBStatus(a.tr.T("IGDB_STATUS_FAIL"))
+	qt6.QMessageBox_Warning(a.win.QWidget, a.tr.T("IGDB_TITLE"), popupText(a.igdbFailText(err)))
 }
 
 func (a *App) testIGDB() {
 	a.saveIGDBCredentials()
-	if a.igdbAPI == nil || !a.igdbAPI.Configured() {
-		qt6.QMessageBox_Warning(a.win.QWidget, a.tr.T("IGDB_TITLE"), popupText(a.tr.T("IGDB_TEST_FAIL")))
+	if a.igdbAPI == nil {
+		a.finishIGDBTest(igdb.ErrNoCredentials)
 		return
 	}
+	a.igdbTestGen++
+	gen := a.igdbTestGen
+	api := a.igdbAPI
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 		defer cancel()
-		err := a.igdbAPI.Ping(ctx)
+		err := api.Ping(ctx)
 		mainthread.Start(func() {
-			if err != nil {
-				a.debug("igdb ping: %v", err)
-				qt6.QMessageBox_Warning(a.win.QWidget, a.tr.T("IGDB_TITLE"), popupText(a.tr.T("IGDB_TEST_FAIL")))
+			if gen != a.igdbTestGen {
 				return
 			}
-			qt6.QMessageBox_Information(a.win.QWidget, a.tr.T("IGDB_TITLE"), popupText(a.tr.T("IGDB_TEST_OK")))
+			a.finishIGDBTest(err)
 		})
 	}()
 }

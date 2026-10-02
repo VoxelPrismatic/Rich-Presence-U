@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -18,7 +20,49 @@ const (
 	defaultTokenURL = "https://id.twitch.tv/oauth2/token"
 	defaultAPIURL   = "https://api.igdb.com/v4"
 	searchLimit     = 20
+
+	// Classify results for a failed Ping.
+	FailTimeout      = "timeout"
+	FailUnauthorized = "unauthorized"
+	FailOther        = "other"
 )
+
+// ErrNoCredentials is returned when the client id or secret is empty.
+var ErrNoCredentials = errors.New("igdb: no credentials")
+
+type statusError struct {
+	op     string
+	status int
+}
+
+func (e *statusError) Error() string {
+	return fmt.Sprintf("%s: %d", e.op, e.status)
+}
+
+// Classify reports why a Ping failed.
+// Timeout means the request timed out. Unauthorized means the credentials were rejected or missing.
+func Classify(err error) string {
+	if err == nil {
+		return ""
+	}
+	var ne net.Error
+	if errors.As(err, &ne) && ne.Timeout() {
+		return FailTimeout
+	}
+	if errors.Is(err, ErrNoCredentials) {
+		return FailUnauthorized
+	}
+	var hs *statusError
+	if errors.As(err, &hs) {
+		switch hs.status {
+		case http.StatusRequestTimeout:
+			return FailTimeout
+		case http.StatusBadRequest, http.StatusUnauthorized, http.StatusForbidden:
+			return FailUnauthorized
+		}
+	}
+	return FailOther
+}
 
 // GameHit is one title from the authed IGDB games search.
 type GameHit struct {
@@ -91,7 +135,7 @@ func (c *Client) SearchGames(ctx context.Context, query string, platform Platfor
 		return nil, nil
 	}
 	if !c.Configured() {
-		return nil, fmt.Errorf("igdb: no credentials")
+		return nil, ErrNoCredentials
 	}
 	token, err := c.accessToken(ctx)
 	if err != nil {
@@ -175,7 +219,7 @@ func (c *Client) accessToken(ctx context.Context) (string, error) {
 	cached, exp := c.token, c.tokenExp
 	c.mu.Unlock()
 	if id == "" || secret == "" {
-		return "", fmt.Errorf("igdb: no credentials")
+		return "", ErrNoCredentials
 	}
 	if cached != "" && time.Now().Before(exp) {
 		return cached, nil
@@ -202,7 +246,7 @@ func (c *Client) accessToken(ctx context.Context) (string, error) {
 	defer resp.Body.Close()
 	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("igdb token: %s", resp.Status)
+		return "", &statusError{op: "igdb token", status: resp.StatusCode}
 	}
 	var tok tokenResp
 	if err := json.Unmarshal(raw, &tok); err != nil {
@@ -251,7 +295,7 @@ func (c *Client) api(ctx context.Context, token, path, body string) ([]byte, err
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("igdb api: %s", resp.Status)
+		return nil, &statusError{op: "igdb api", status: resp.StatusCode}
 	}
 	return raw, nil
 }

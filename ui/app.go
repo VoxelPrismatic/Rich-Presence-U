@@ -79,6 +79,8 @@ type App struct {
 	debugOn      *qt6.QCheckBox
 	igdbID       *qt6.QLineEdit
 	igdbSecret   *qt6.QLineEdit
+	igdbStatus   *qt6.QLabel
+	igdbTestGen  int
 	dataCombo    *qt6.QComboBox
 	dataBtn      *qt6.QPushButton
 	settingsBack *qt6.QPushButton
