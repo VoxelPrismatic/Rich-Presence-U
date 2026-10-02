@@ -61,7 +61,7 @@ type SystemState struct {
 
 type prefsFile struct {
 	Settings
-	Platforms map[string]SystemState `json:"platforms"`
+	Platforms map[string]SystemState `json:"platforms,omitempty"`
 }
 
 func defaultSettings() Settings {
@@ -129,16 +129,12 @@ func loadPrefs(dir string) (Settings, map[string]*SystemState) {
 	return normalizeSettings(s), systems
 }
 
-func savePrefs(dir string, s Settings, systems map[string]*SystemState) error {
+func savePrefs(dir string, s Settings) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	pf := prefsFile{Settings: s, Platforms: map[string]SystemState{}}
-	for slug, st := range systems {
-		if st != nil && slug != "" {
-			pf.Platforms[slug] = *st
-		}
-	}
+	// Platforms live in games.db. Leave the JSON key out.
+	pf := prefsFile{Settings: s}
 	b, err := json.MarshalIndent(pf, "", "  ")
 	if err != nil {
 		return err

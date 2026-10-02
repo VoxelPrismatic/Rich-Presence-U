@@ -295,7 +295,12 @@ func (a *App) statusApplied() bool {
 }
 
 func (a *App) persist() {
-	_ = savePrefs(a.nso.ConfigDir, a.settings, a.systems)
+	_ = savePrefs(a.nso.ConfigDir, a.settings)
+	if a.nso == nil {
+		return
+	}
+	prefs, hist := platformsToRows(a.systems)
+	_ = a.nso.SavePlatforms(prefs, hist)
 }
 
 func (a *App) rememberGame() {

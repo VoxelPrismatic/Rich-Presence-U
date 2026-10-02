@@ -50,19 +50,15 @@ func TestPrefsMigrateHACKey(t *testing.T) {
 	if st == nil || st.Game != "70010000012345" {
 		t.Fatalf("migrated state %+v %v", st, systems)
 	}
-	if err := savePrefs(dir, s, systems); err != nil {
+	if err := savePrefs(dir, s); err != nil {
 		t.Fatal(err)
 	}
 	b, err := os.ReadFile(filepath.Join(dir, "prefs.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	var pf prefsFile
-	if err := json.Unmarshal(b, &pf); err != nil {
-		t.Fatal(err)
-	}
-	if _, ok := pf.Platforms["NS1"]; !ok {
-		t.Fatalf("saved keys %v", pf.Platforms)
+	if bytes.Contains(b, []byte(`"platforms"`)) {
+		t.Fatalf("platforms should leave prefs.json: %s", b)
 	}
 }
 
@@ -104,11 +100,11 @@ func TestTestUpdatePref(t *testing.T) {
 	if err := os.WriteFile(prefsPath(dir), raw, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	s, systems := loadPrefs(dir)
+	s, _ := loadPrefs(dir)
 	if !s.TestUpdate {
 		t.Fatal("test_update should load")
 	}
-	if err := savePrefs(dir, s, systems); err != nil {
+	if err := savePrefs(dir, s); err != nil {
 		t.Fatal(err)
 	}
 	b, err := os.ReadFile(prefsPath(dir))
@@ -119,7 +115,7 @@ func TestTestUpdatePref(t *testing.T) {
 		t.Fatalf("saved prefs: %s", b)
 	}
 	s.TestUpdate = false
-	if err := savePrefs(dir, s, systems); err != nil {
+	if err := savePrefs(dir, s); err != nil {
 		t.Fatal(err)
 	}
 	b, err = os.ReadFile(prefsPath(dir))
