@@ -161,20 +161,23 @@ var EnUS = map[string]string{
 	"TAG_PLACEHOLDER_FC":      "FC: 0000-0000-0000",
 }
 
-// igdbInstructions is the IGDB account-creation guide, with the same links as
-// https://api-docs.igdb.com/#account-creation
-const igdbInstructions = `<p><a href="https://api-docs.igdb.com/#account-creation">Account Creation</a></p>
-<p>In order to use the search games feature, you must have a Twitch account. Game Search is provided by IGDB.</p>
-<ol>
+// igdbInstructions is the Game Search setup guide. {{NAME}} is replaced with a
+// random throwaway Twitch application name when the settings page is built.
+const igdbInstructions = `<ol>
 <li>Sign Up with <a href="https://dev.twitch.tv/login">Twitch</a> for a free account</li>
-<li>Ensure you have Two Factor Authentication <a href="https://www.twitch.tv/settings/security">enabled</a></li>
-<li>Register your application in the <a href="https://dev.twitch.tv/console/apps/create">Twitch Developer Portal</a>
-<ul>
-<li>The OAuth Redirect URL field is not used by IGDB. Please add ’localhost’ to continue.</li>
-<li>The Client Type must be set to <b>Confidential</b> to generate Client Secrets</li>
-</ul>
+<li>Ensure that you have 2FA <a href="https://www.twitch.tv/settings/security">enabled</a></li>
+<li>Register your application in the <a href="https://dev.twitch.tv/console/apps/create">Twitch Developer Portal</a></li>
+<li>Use these settings:
+<table border="1" cellpadding="3" cellspacing="0" width="100%">
+<tr><th align="left">Input Order</th><th align="left">Field</th><th align="left">Value</th></tr>
+<tr><td>1</td><td>Name</td><td><tt>{{NAME}}</tt></td></tr>
+<tr><td>2</td><td>Category</td><td><tt>Application Integration</tt></td></tr>
+<tr><td>3</td><td>OAuth Redirect URLs</td><td><tt>https://localhost</tt></td></tr>
+<tr><td>4</td><td>Client Type</td><td>Confidential</td></tr>
+</table>
 </li>
+<li>Create!</li>
 <li><a href="https://dev.twitch.tv/console/apps">Manage</a> your newly created application</li>
-<li>Generate a Client Secret by pressing [New Secret]</li>
-<li>Take note of the Client ID and Client Secret</li>
+<li>Press the [New Secret] button at the bottom</li>
+<li>Copy the Client ID and Secret into this settings page accordingly</li>
 </ol>`

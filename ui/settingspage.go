@@ -8,6 +8,7 @@ import (
 
 	"github.com/mappu/miqt/qt6"
 	"github.com/mappu/miqt/qt6/mainthread"
+	"github.com/voxelprismatic/richpresenceu/locales"
 	"github.com/voxelprismatic/richpresenceu/nso"
 	"github.com/voxelprismatic/richpresenceu/svc"
 )
@@ -102,7 +103,7 @@ func (a *App) buildSettings() *qt6.QWidget {
 	addSettingsField(presLay, a.tr.T("DATA_TITLE"), dataWrap, helpButton(a.tr.T("DATA_HINT")))
 
 	_, igdbLay := newSettingsPane(a.tr.T("SETTINGS_GAME_SEARCH"))
-	steps := linkLabel(a.tr.T("IGDB_INSTRUCTIONS"))
+	steps := linkLabel(locales.GameSearchInstructions(a.tr.T("IGDB_INSTRUCTIONS"), ""))
 	steps.SetWordWrap(true)
 	steps.SetAlignment(qt6.AlignLeft | qt6.AlignTop)
 	igdbLay.AddWidget(steps.QWidget)
