@@ -58,26 +58,7 @@ func (a *App) buildMain() *qt6.QWidget {
 	return page
 }
 
-func (a *App) buildPresence() *qt6.QWidget {
-	card := qt6.NewQFrame2()
-	card.SetFrameShape(qt6.QFrame__StyledPanel)
-	lay := qt6.NewQHBoxLayout(card.QWidget)
-	lay.SetContentsMargins(12, 12, 12, 12)
-
-	a.cover = qt6.NewQLabel2()
-	a.cover.SetFixedSize2(coverSize, coverSize)
-	a.cover.SetScaledContents(true)
-	a.cover.SetStyleSheet("background: rgba(0,0,0,40); border-radius: 8px;")
-	lay.AddWidget3(a.cover.QWidget, 0, qt6.AlignTop)
-
-	col := qt6.NewQVBoxLayout2()
-	col.SetSpacing(8)
-
-	sysRow := qt6.NewQHBoxLayout2()
-	a.system = qt6.NewQComboBox2()
-	a.setupPlatformSelector()
-	sysRow.AddWidget(a.system.QWidget)
-	col.AddLayout(sysRow.QLayout)
+func (a *App) buildGameRow() *qt6.QHBoxLayout {
 
 	gameRow := qt6.NewQHBoxLayout2()
 	a.game = qt6.NewQComboBox2()
@@ -117,8 +98,11 @@ func (a *App) buildPresence() *qt6.QWidget {
 	gameRow.AddWidget2(a.game.QWidget, 1)
 	gameRow.AddWidget(a.region.QWidget)
 	gameRow.AddWidget(a.infoBtn.QWidget)
-	col.AddLayout(gameRow.QLayout)
 
+	return gameRow
+}
+
+func (a *App) buildDescRow() *qt6.QHBoxLayout {
 	descRow := qt6.NewQHBoxLayout2()
 	pub := qt6.NewQLabel2()
 	pub.SetPixmap(iconPublic().Pixmap2(16, 16))
@@ -138,8 +122,11 @@ func (a *App) buildPresence() *qt6.QWidget {
 	})
 	descRow.AddWidget(pub.QWidget)
 	descRow.AddWidget2(a.desc.QWidget, 1)
-	col.AddLayout(descRow.QLayout)
 
+	return descRow
+}
+
+func (a *App) buildPartyRow() *qt6.QHBoxLayout {
 	partyRow := qt6.NewQHBoxLayout2()
 	a.partyOn = qt6.NewQCheckBox2()
 	a.noParty = qt6.NewQLabel3(a.tr.T("NO_PARTY"))
@@ -199,10 +186,40 @@ func (a *App) buildPresence() *qt6.QWidget {
 	partyRow.AddWidget(a.noParty.QWidget)
 	partyRow.AddWidget(a.partyBox)
 	partyRow.AddStretch()
+	return partyRow
+}
+
+func (a *App) buildPresence() *qt6.QWidget {
+	card := qt6.NewQFrame2()
+	card.SetFrameShape(qt6.QFrame__StyledPanel)
+	lay := qt6.NewQHBoxLayout(card.QWidget)
+	lay.SetContentsMargins(12, 12, 12, 12)
+
+	a.cover = qt6.NewQLabel2()
+	a.cover.SetFixedSize2(coverSize, coverSize)
+	a.cover.SetScaledContents(true)
+	a.cover.SetStyleSheet("background: rgba(0,0,0,40); border-radius: 8px;")
+	lay.AddWidget3(a.cover.QWidget, 0, qt6.AlignTop)
+
+	col := qt6.NewQVBoxLayout2()
+	col.SetSpacing(8)
+
+	sysRow := qt6.NewQHBoxLayout2()
+	a.system = qt6.NewQComboBox2()
+	a.setupPlatformSelector()
+	sysRow.AddWidget(a.system.QWidget)
+	col.AddLayout(sysRow.QLayout)
+
+	gameRow := a.buildGameRow()
+	col.AddLayout(gameRow.QLayout)
+
+	descRow := a.buildDescRow()
+	col.AddLayout(descRow.QLayout)
+
+	partyRow := a.buildPartyRow()
 	col.AddLayout(partyRow.QLayout)
 
 	timeRow := a.buildClockRow()
-	timeRow.AddStretch()
 	col.AddLayout(timeRow.QLayout)
 
 	lay.AddLayout2(col.QLayout, 1)
