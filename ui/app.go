@@ -80,7 +80,10 @@ type App struct {
 
 	langCombo    *qt6.QComboBox
 	prefRegion   *qt6.QComboBox
-	autoConn     *qt6.QCheckBox
+	autoConn     *qt6.QComboBox
+	pollTimer    *qt6.QTimer
+	polling      bool
+	connectGen   int
 	keepOn       *qt6.QCheckBox
 	debugOn      *qt6.QCheckBox
 	hidePause    *qt6.QRadioButton

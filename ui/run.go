@@ -65,9 +65,11 @@ func Main() {
 	a.updateApply()
 
 	a.initClockTimer()
+	a.initConnectPoll()
 
 	a.win.Show()
-	if a.settings.AutoConnect {
+	a.syncConnectPoll()
+	if a.settings.AutoConnect == connectStartup {
 		a.connect(false)
 	}
 	os.Exit(qt6.QApplication_Exec())

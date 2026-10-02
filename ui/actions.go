@@ -118,7 +118,67 @@ func (a *App) unhideForApply() {
 	a.refreshScreensaver()
 }
 
+const connectPollEvery = 5 * time.Second
+
+func (a *App) initConnectPoll() {
+	if a.win == nil {
+		return
+	}
+	a.pollTimer = qt6.NewQTimer2(a.win.QObject)
+	a.pollTimer.SetInterval(int(connectPollEvery / time.Millisecond))
+	a.pollTimer.OnTimeout(func() { a.pollDiscord() })
+}
+
+func (a *App) syncConnectPoll() {
+	if a.pollTimer == nil {
+		return
+	}
+	if a.settings.AutoConnect != connectPoll {
+		a.pollTimer.Stop()
+		return
+	}
+	if !a.pollTimer.IsActive() {
+		a.pollTimer.Start2()
+	}
+	a.pollDiscord()
+}
+
+func (a *App) pollDiscord() {
+	if a.settings.AutoConnect != connectPoll || a.busy || a.polling || a.rpc.Connected() {
+		return
+	}
+	a.connectQuiet()
+}
+
+func (a *App) connectQuiet() {
+	a.connectGen++
+	gen := a.connectGen
+	a.polling = true
+	id := a.nso.Meta.ClientID(a.discordSystem())
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+		defer cancel()
+		user, err := a.rpc.Connect(ctx, id)
+		mainthread.Start(func() {
+			if gen != a.connectGen {
+				return
+			}
+			a.polling = false
+			if err != nil || a.busy {
+				return
+			}
+			a.debug("discord connected as %s", user.DisplayName())
+			a.loadAvatar(user)
+			a.updateApply()
+			a.refreshScreensaver()
+		})
+	}()
+}
+
 func (a *App) connect(andPush bool) {
+	a.connectGen++
+	gen := a.connectGen
+	a.polling = false
 	a.busy = true
 	a.updateApply()
 	id := a.nso.Meta.ClientID(a.discordSystem())
@@ -127,6 +187,9 @@ func (a *App) connect(andPush bool) {
 		defer cancel()
 		user, err := a.rpc.Connect(ctx, id)
 		mainthread.Start(func() {
+			if gen != a.connectGen {
+				return
+			}
 			a.busy = false
 			if err != nil {
 				a.debug("discord connect: %v", err)

@@ -62,11 +62,16 @@ func (a *App) buildSettings() *qt6.QWidget {
 
 	_, presLay := newSettingsPane(a.tr.T("SETTINGS_PRESENCE"))
 	presForm := settingsForm(presLay)
-	a.autoConn = qt6.NewQCheckBox2()
-	a.autoConn.OnToggled(func(on bool) {
-		if !a.silent {
-			a.settings.AutoConnect = on
+	a.autoConn = qt6.NewQComboBox2()
+	a.autoConn.AddItem3(a.tr.T("AUTOCONNECT_NEVER"), qt6.NewQVariant11(string(connectNever)))
+	a.autoConn.AddItem3(a.tr.T("AUTOCONNECT_STARTUP"), qt6.NewQVariant11(string(connectStartup)))
+	a.autoConn.AddItem3(a.tr.T("AUTOCONNECT_POLL"), qt6.NewQVariant11(string(connectPoll)))
+	a.autoConn.OnCurrentIndexChanged(func(i int) {
+		if a.silent {
+			return
 		}
+		a.settings.AutoConnect = connectMode(a.autoConn.ItemData(i).ToString())
+		a.syncConnectPoll()
 	})
 	addFormRow(presForm, 0, a.tr.T("AUTOCONNECT_TITLE"), a.autoConn.QWidget, a.helpButton(a.tr.T("AUTOCONNECT_HINT")))
 
@@ -297,7 +302,7 @@ func (a *App) loadSettingsIntoUI() {
 	a.silent = true
 	a.selectComboData(a.langCombo, a.settings.Language)
 	a.selectComboData(a.prefRegion, string(a.settings.Region))
-	a.autoConn.SetChecked(a.settings.AutoConnect)
+	a.selectComboData(a.autoConn, string(a.settings.AutoConnect))
 	a.keepOn.SetChecked(a.settings.KeepOn)
 	a.debugOn.SetChecked(a.settings.DebugLog)
 	if a.hidePause != nil && a.hideDiscord != nil {
