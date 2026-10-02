@@ -64,6 +64,21 @@ func TestPrefsMigrateHACKey(t *testing.T) {
 	}
 }
 
+func TestNormalizeHideBehavior(t *testing.T) {
+	s := normalizeSettings(Settings{Platform: "NS1"})
+	if s.HideBehavior != hideDiscord {
+		t.Fatalf("default %q", s.HideBehavior)
+	}
+	s = normalizeSettings(Settings{Platform: "NS1", HideBehavior: hidePause})
+	if s.HideBehavior != hidePause {
+		t.Fatalf("pause %q", s.HideBehavior)
+	}
+	s = normalizeSettings(Settings{Platform: "NS1", HideBehavior: "nope"})
+	if s.HideBehavior != hideDiscord {
+		t.Fatalf("unknown %q", s.HideBehavior)
+	}
+}
+
 func TestPlatformKey(t *testing.T) {
 	if platformKey("HAC") != "NS1" || platformKey("NS1") != "NS1" {
 		t.Fatal(platformKey("HAC"), platformKey("NS1"))

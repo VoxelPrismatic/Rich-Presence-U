@@ -38,6 +38,36 @@ func TestCountdownPercent(t *testing.T) {
 	}
 }
 
+func TestPauseTick(t *testing.T) {
+	hold, sync := pauseTick(true, true)
+	if !hold || sync {
+		t.Fatalf("hidden pause = hold %v sync %v", hold, sync)
+	}
+	hold, sync = pauseTick(true, false)
+	if hold || !sync {
+		t.Fatalf("visible pause = hold %v sync %v", hold, sync)
+	}
+	hold, sync = pauseTick(false, true)
+	if hold || sync {
+		t.Fatalf("hide from discord = hold %v sync %v", hold, sync)
+	}
+}
+
+func TestVisibilityIcon(t *testing.T) {
+	if name, tip := visibilityIcon(true, false); name != "media-playback-pause" || tip != "STATUS_PAUSED" {
+		t.Fatalf("paused = %s %s", name, tip)
+	}
+	if name, tip := visibilityIcon(true, true); name != "media-playback-start" || tip != "STATUS_COUNTING" {
+		t.Fatalf("counting = %s %s", name, tip)
+	}
+	if name, tip := visibilityIcon(false, true); name != "view-visible" || tip != "STATUS_ENABLED" {
+		t.Fatalf("visible = %s %s", name, tip)
+	}
+	if name, tip := visibilityIcon(false, false); name != "view-visible-off" || tip != "STATUS_DISABLED" {
+		t.Fatalf("hidden = %s %s", name, tip)
+	}
+}
+
 func TestStepClockSeconds(t *testing.T) {
 	if got := stepClockSeconds(59, 1, 1); got != 60 {
 		t.Fatalf("seconds carry = %d, want 60", got)

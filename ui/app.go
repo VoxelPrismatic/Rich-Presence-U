@@ -16,20 +16,26 @@ import (
 )
 
 type App struct {
-	tr       *i18n
-	log      logger
-	nso      *nso.Client
-	igdbAPI  *igdb.Client
-	rpc      *discord.Client
-	settings Settings
-	systems  map[string]*SystemState
-	clk      playClock
-	applied  string
-	built    *discord.Activity
-	busy     bool
-	silent   bool
-	warnHide bool
-	inhibit  inhibitor
+	tr             *i18n
+	log            logger
+	nso            *nso.Client
+	igdbAPI        *igdb.Client
+	rpc            *discord.Client
+	settings       Settings
+	systems        map[string]*SystemState
+	clk            playClock
+	applied        string
+	appliedBody    string
+	built          *discord.Activity
+	clockSync      bool
+	clockDirty     bool
+	clockFailed    bool
+	clockFailStart int64
+	clockFailEnd   int64
+	busy           bool
+	silent         bool
+	warnHide       bool
+	inhibit        inhibitor
 
 	win           *qt6.QMainWindow
 	stack         *qt6.QStackedWidget
@@ -77,6 +83,9 @@ type App struct {
 	autoConn     *qt6.QCheckBox
 	keepOn       *qt6.QCheckBox
 	debugOn      *qt6.QCheckBox
+	hidePause    *qt6.QRadioButton
+	hideDiscord  *qt6.QRadioButton
+	autoUnhide   *qt6.QCheckBox
 	igdbID       *qt6.QLineEdit
 	igdbSecret   *qt6.QLineEdit
 	igdbStatus   *qt6.QLabel
@@ -248,11 +257,33 @@ func (a *App) presenceForPush() discord.Presence {
 }
 
 func (a *App) fingerprint() string {
+	return a.hashPresence(a.presence())
+}
+
+func (a *App) fingerprintBody() string {
 	p := a.presence()
+	p.Start, p.End = 0, 0
+	return a.hashPresence(p)
+}
+
+func (a *App) hashPresence(p discord.Presence) string {
 	st := a.sys()
 	raw, _ := json.Marshal([]any{a.settings.Platform, a.settings.System, st.Game, a.preferredRegion(), p, st.TagFC, st.TagID, st.TagIcon, a.gameState()})
 	sum := sha1.Sum(raw)
 	return hex.EncodeToString(sum[:])
+}
+
+// clockStatusApplied reports that the form matches the last status sent to
+// Discord, ignoring the play-clock timestamps.
+func (a *App) clockStatusApplied() bool {
+	return a.appliedBody != "" && a.fingerprintBody() == a.appliedBody
+}
+
+func (a *App) statusApplied() bool {
+	if a.fingerprint() == a.applied {
+		return true
+	}
+	return a.settings.pausesTimer() && a.clockStatusApplied()
 }
 
 func (a *App) persist() {

@@ -106,6 +106,33 @@ func (a *App) buildSettings() *qt6.QWidget {
 	dw.AddStretch()
 	addFormRow(presForm, 3, a.tr.T("DATA_TITLE"), dataWrap, a.helpButton(a.tr.T("DATA_HINT")))
 
+	hideWrap := qt6.NewQWidget2()
+	hideLay := qt6.NewQVBoxLayout(hideWrap)
+	hideLay.SetContentsMargins(0, 0, 0, 0)
+	hideLay.SetSpacing(2)
+	a.hidePause = qt6.NewQRadioButton4(a.tr.T("HIDE_PAUSE"), hideWrap)
+	a.hideDiscord = qt6.NewQRadioButton4(a.tr.T("HIDE_DISCORD"), hideWrap)
+	a.hidePause.OnToggled(func(on bool) {
+		if on {
+			a.setHideBehavior(hidePause)
+		}
+	})
+	a.hideDiscord.OnToggled(func(on bool) {
+		if on {
+			a.setHideBehavior(hideDiscord)
+		}
+	})
+	a.autoUnhide = qt6.NewQCheckBox4(a.tr.T("HIDE_AUTO_UNHIDE"), hideWrap)
+	a.autoUnhide.OnToggled(func(on bool) {
+		if !a.silent {
+			a.settings.AutoUnhide = on
+		}
+	})
+	hideLay.AddWidget(a.hidePause.QWidget)
+	hideLay.AddWidget(a.hideDiscord.QWidget)
+	hideLay.AddWidget(a.autoUnhide.QWidget)
+	addFormRow(presForm, 4, a.tr.T("HIDE_BEHAVIOR"), hideWrap, nil)
+
 	_, igdbLay := newSettingsPane(a.tr.T("SETTINGS_GAME_SEARCH"))
 	intro := qt6.NewQLabel3(a.tr.T("IGDB_INTRO"))
 	intro.SetWordWrap(true)
@@ -273,6 +300,16 @@ func (a *App) loadSettingsIntoUI() {
 	a.autoConn.SetChecked(a.settings.AutoConnect)
 	a.keepOn.SetChecked(a.settings.KeepOn)
 	a.debugOn.SetChecked(a.settings.DebugLog)
+	if a.hidePause != nil && a.hideDiscord != nil {
+		if a.settings.pausesTimer() {
+			a.hidePause.SetChecked(true)
+		} else {
+			a.hideDiscord.SetChecked(true)
+		}
+	}
+	if a.autoUnhide != nil {
+		a.autoUnhide.SetChecked(a.settings.AutoUnhide)
+	}
 	if a.igdbID != nil {
 		a.igdbID.SetText(a.settings.IGDBClientID)
 	}

@@ -23,6 +23,8 @@ type playClock struct {
 	end     time.Time
 	running bool
 	alerted bool
+	held    int
+	heldOK  bool
 	drafts  map[string]int
 
 	timer *qt6.QTimer
@@ -349,11 +351,45 @@ func (a *App) refreshClockMode() {
 	c.mode.SetToolTip(a.tr.T("CLOCK_COUNT_UP"))
 }
 
+// pauseTick is the pause-timer branch of the elapsed callback.
+// A hidden status freezes the clock from the time field.
+// A visible status syncs timestamps when that status is the applied one.
+func pauseTick(pauseMode, hidden bool) (hold, syncWhenApplied bool) {
+	if !pauseMode {
+		return false, false
+	}
+	if hidden {
+		return true, false
+	}
+	return false, true
+}
+
+func (a *App) holdPausedClock() {
+	c := &a.clk
+	var shown int
+	if a.onAppliedGame() {
+		shown = a.clockSeconds()
+		c.held = shown
+		c.heldOK = true
+	} else if c.heldOK {
+		shown = c.held
+	} else {
+		return
+	}
+	a.rebaseClock(shown)
+}
+
 func (a *App) updateElapsed() {
 	c := &a.clk
 	if !c.running {
 		return
 	}
+	hold, syncWhenApplied := pauseTick(a.settings.pausesTimer(), !a.settings.Activity)
+	if hold {
+		a.holdPausedClock()
+		return
+	}
+	c.heldOK = false
 	now := time.Now()
 	if c.down && !c.end.IsZero() && !now.Before(c.end) {
 		if a.onAppliedGame() && !a.clockEditing() {
@@ -364,6 +400,9 @@ func (a *App) updateElapsed() {
 	}
 	if a.onAppliedGame() && !a.clockEditing() {
 		a.showSeconds(a.liveSeconds())
+	}
+	if syncWhenApplied {
+		a.syncAppliedClock()
 	}
 }
 

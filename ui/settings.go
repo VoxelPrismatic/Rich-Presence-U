@@ -23,6 +23,8 @@ type Settings struct {
 	KeepOn           bool       `json:"keep_on"`
 	DebugLog         bool       `json:"debug_log"`
 	Activity         bool       `json:"activity"`
+	HideBehavior     string     `json:"hide_behavior,omitempty"`
+	AutoUnhide       bool       `json:"auto_unhide,omitempty"`
 	Region           nso.Region `json:"region"`
 	WindowW          int        `json:"window_w"`
 	WindowH          int        `json:"window_h"`
@@ -60,15 +62,16 @@ type prefsFile struct {
 
 func defaultSettings() Settings {
 	return Settings{
-		System:   nso.HAC,
-		Platform: "NS1",
-		Refresh:  604800,
-		KeepOn:   true,
-		DebugLog: true,
-		Activity: true,
-		Region:   nso.US,
-		WindowW:  560,
-		WindowH:  640,
+		System:       nso.HAC,
+		Platform:     "NS1",
+		Refresh:      604800,
+		KeepOn:       true,
+		DebugLog:     true,
+		Activity:     true,
+		HideBehavior: hideDiscord,
+		Region:       nso.US,
+		WindowW:      560,
+		WindowH:      640,
 	}
 }
 
@@ -157,7 +160,19 @@ func normalizeSettings(s Settings) Settings {
 	if !s.Region.Valid() {
 		s.Region = nso.US
 	}
+	if s.HideBehavior != hidePause {
+		s.HideBehavior = hideDiscord
+	}
 	return s
+}
+
+const (
+	hidePause   = "pause"
+	hideDiscord = "discord"
+)
+
+func (s Settings) pausesTimer() bool {
+	return s.HideBehavior == hidePause
 }
 
 func legacyDataDir() string {

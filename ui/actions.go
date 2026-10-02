@@ -26,7 +26,7 @@ func (a *App) updateApply() {
 		a.applyBtn.SetIcon(iconNamed("network-disconnect", "network-disconnect"))
 		a.applyBtn.SetText(a.tr.T("STATUS_CONNECT"))
 		a.applyBtn.SetToolTip(a.tr.T("STATUS_CONNECT"))
-	case a.fingerprint() == a.applied:
+	case a.statusApplied():
 		a.applyBtn.SetEnabled(false)
 		a.applyBtn.SetIcon(iconNamed("checkmark", "checkmark"))
 		a.applyBtn.SetText(a.tr.T("STATUS_APPLIED"))
@@ -37,14 +37,7 @@ func (a *App) updateApply() {
 		a.applyBtn.SetText(a.tr.T("STATUS_APPLY"))
 		a.applyBtn.SetToolTip(a.tr.T("STATUS_APPLY"))
 	}
-	a.visBtn.SetChecked(a.settings.Activity)
-	if a.settings.Activity {
-		a.visBtn.SetIcon(iconNamed("view-visible", "view-visible"))
-		a.visBtn.SetToolTip(a.tr.T("STATUS_ENABLED"))
-	} else {
-		a.visBtn.SetIcon(iconNamed("view-visible-off", "view-visible-off"))
-		a.visBtn.SetToolTip(a.tr.T("STATUS_DISABLED"))
-	}
+	a.refreshVisibility()
 	if a.rpc.Connected() {
 		u := a.rpc.User()
 		a.userName.SetText(u.DisplayName())
@@ -56,10 +49,37 @@ func (a *App) updateApply() {
 	}
 }
 
+func visibilityIcon(pauseMode, counting bool) (name, tip string) {
+	if pauseMode {
+		if counting {
+			return "media-playback-start", "STATUS_COUNTING"
+		}
+		return "media-playback-pause", "STATUS_PAUSED"
+	}
+	if counting {
+		return "view-visible", "STATUS_ENABLED"
+	}
+	return "view-visible-off", "STATUS_DISABLED"
+}
+
+func (a *App) refreshVisibility() {
+	if a.visBtn == nil {
+		return
+	}
+	a.visBtn.SetChecked(a.settings.Activity)
+	name, tip := visibilityIcon(a.settings.pausesTimer(), a.settings.Activity)
+	a.visBtn.SetIcon(iconNamed(name, name))
+	a.visBtn.SetToolTip(a.tr.T(tip))
+}
+
 func (a *App) onDisconnected() {
 	a.busy = false
 	a.applied = ""
+	a.appliedBody = ""
 	a.built = nil
+	a.clockSync = false
+	a.clockDirty = false
+	a.clockFailed = false
 	if a.avatar != nil {
 		a.avatar.SetPixmap(qt6.NewQPixmap())
 	}
@@ -78,11 +98,24 @@ func (a *App) onApply() {
 		a.connect(false)
 		return
 	}
-	if !a.settings.Activity && !a.warnHide {
+	a.unhideForApply()
+	if !a.settings.Activity && !a.settings.pausesTimer() && !a.warnHide {
 		a.warnHide = true
 		qt6.QMessageBox_Information(a.win.QWidget, a.tr.T("INVISIBLE_STATUS_TITLE"), popupText(a.tr.T("INVISIBLE_STATUS_HINT")))
 	}
 	a.pushStatus()
+}
+
+// unhideForApply turns the status on before a connected apply when that option is set.
+func (a *App) unhideForApply() {
+	if !a.settings.AutoUnhide || a.settings.Activity {
+		return
+	}
+	a.settings.Activity = true
+	a.clk.heldOK = false
+	a.clockDirty = false
+	a.refreshVisibility()
+	a.refreshScreensaver()
 }
 
 func (a *App) connect(andPush bool) {
@@ -125,12 +158,14 @@ func (a *App) pushStatus() {
 	a.clk.running = true
 	act := discord.Build(a.presenceForPush())
 	fp := a.fingerprint()
+	body := a.fingerprintBody()
 	if !wasRunning {
 		a.clk.running = false
 	}
 	sysKey := a.sysKey()
 	gameID := a.sys().Game
 	a.built = &act
+	send := a.settings.Activity || a.settings.pausesTimer()
 	id := a.nso.Meta.ClientID(a.discordSystem())
 	needSwitch := a.rpc.Connected() && a.rpc.ClientID() != id
 	go func() {
@@ -146,7 +181,7 @@ func (a *App) pushStatus() {
 			}
 		}
 		var err error
-		if a.settings.Activity {
+		if send {
 			err = a.rpc.SetActivity(ctx, &act)
 		} else {
 			err = a.rpc.Clear(ctx)
@@ -157,6 +192,9 @@ func (a *App) pushStatus() {
 				qt6.QMessageBox_Warning(a.win.QWidget, a.tr.T("CONNECTION_ERROR_TITLE"), err.Error())
 			} else {
 				a.applied = fp
+				a.appliedBody = body
+				a.clockDirty = false
+				a.clockFailed = false
 				a.appliedSys = sysKey
 				a.appliedGame = gameID
 				a.ensureElapsedTick()
@@ -172,6 +210,16 @@ func (a *App) pushStatus() {
 
 func (a *App) onVisibility() {
 	a.settings.Activity = a.visBtn.IsChecked()
+	if a.settings.pausesTimer() {
+		if a.settings.Activity {
+			a.clk.heldOK = false
+			a.clockDirty = true
+			a.clockFailed = false
+		}
+		a.updateApply()
+		a.refreshScreensaver()
+		return
+	}
 	if !a.rpc.Connected() || a.built == nil {
 		a.updateApply()
 		a.refreshScreensaver()
@@ -189,6 +237,99 @@ func (a *App) onVisibility() {
 		mainthread.Start(func() {
 			if err != nil {
 				a.debug("toggle activity: %v", err)
+			}
+			a.updateApply()
+			a.refreshScreensaver()
+		})
+	}()
+}
+
+// syncAppliedClock pushes the play clock when the visible status is the one
+// already applied. Unchanged timestamps are left alone.
+func (a *App) syncAppliedClock() {
+	if a.clockSync || a.built == nil || !a.rpc.Connected() {
+		return
+	}
+	start, end := a.presenceTimestamps()
+	same := a.built.StartTimestamp == start && a.built.EndTimestamp == end
+	if a.clockFailed && a.clockFailStart == start && a.clockFailEnd == end {
+		return
+	}
+	if same && !a.clockDirty {
+		return
+	}
+	if !a.clockStatusApplied() {
+		a.clockDirty = false
+		a.clockFailed = true
+		a.clockFailStart = start
+		a.clockFailEnd = end
+		return
+	}
+	act := *a.built
+	act.StartTimestamp = start
+	act.EndTimestamp = end
+	a.clockSync = true
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err := a.rpc.SetActivity(ctx, &act)
+		mainthread.Start(func() {
+			a.clockSync = false
+			if err != nil {
+				a.clockFailed = true
+				a.clockFailStart = start
+				a.clockFailEnd = end
+				a.debug("sync clock: %v", err)
+				return
+			}
+			if a.built == nil || !a.rpc.Connected() || !a.settings.pausesTimer() || !a.settings.Activity {
+				return
+			}
+			nowStart, nowEnd := a.presenceTimestamps()
+			if nowStart != start || nowEnd != end || !a.clockStatusApplied() {
+				return
+			}
+			next := *a.built
+			next.StartTimestamp = start
+			next.EndTimestamp = end
+			a.built = &next
+			a.applied = a.fingerprint()
+			a.clockDirty = false
+			a.clockFailed = false
+			a.updateApply()
+		})
+	}()
+}
+
+func (a *App) setHideBehavior(mode string) {
+	if a.silent {
+		return
+	}
+	if mode != hidePause {
+		mode = hideDiscord
+	}
+	if a.settings.HideBehavior == mode {
+		return
+	}
+	a.settings.HideBehavior = mode
+	if mode == hidePause {
+		a.clockDirty = true
+		a.clockFailed = false
+	} else {
+		a.clk.heldOK = false
+	}
+	a.updateApply()
+	a.refreshScreensaver()
+	if mode == hidePause || a.settings.Activity || !a.rpc.Connected() || a.built == nil {
+		return
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err := a.rpc.Clear(ctx)
+		mainthread.Start(func() {
+			if err != nil {
+				a.debug("hide activity: %v", err)
 			}
 			a.updateApply()
 			a.refreshScreensaver()
