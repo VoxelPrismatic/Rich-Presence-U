@@ -22,7 +22,7 @@ A simple application that allows you to create your own activity statuses for al
   - Nintendo Friend Code sharing.
   - Elapsed time, time remaining, party size, and more.
 
-<img src="./.github/.png" alt="User interface" width="100%">
+<img src="./.github/user-interface.png" alt="User interface" width="100%">
 
 > [!NOTE]
 > Automatic game detection is not supported on any console. Previous efforts
